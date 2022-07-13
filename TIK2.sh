@@ -97,15 +97,15 @@ if [[ ! -f "$binner/depment" ]]; then
 		ywarn "检测到系统sudo，将强制目录赋满权！"
 		sleep $sleeptime
 	fi
-	if [ "$platform" = "aarch64" ] && [[ ! -d "/sdcard/TIK" ]]; then
-		mkdir /sdcard/TIK
+	if [ "$platform" = "aarch64" ] && [[ ! -d "/sdcard/TIK2" ]]; then
+		mkdir /sdcard/TIK2
 	fi
 	yecho "开始配置环境..."
     sleep $sleeptime
-    yecho "更换清华源..."
+    yecho "更换北外大源..."
     ${su} cp /etc/apt/sources.list /etc/apt/sources.list.bak
-    ${su} sed -i 's/archive.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list
-    ${su} sed -i 's/security.ubuntu.com/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list
+    ${su} sed -i 's/archive.ubuntu.com/mirrors.bfsu.edu.cn/g' /etc/apt/sources.list
+    ${su} sed -i 's/security.ubuntu.com/mirrors.bfsu.edu.cn/g' /etc/apt/sources.list
     yecho "正在更新软件列表..."
     ${su} apt-get update  -y && ${su} apt-get upgrade -y 
     yecho "正在安装必备软件包..."
@@ -139,8 +139,9 @@ echo -e "\033[31m $(cat $binner/banners/$banner) \033[0m"
 echo 
 
 updatev=$(curl -s https://cdn.jsdelivr.net/gh/NightstarSakura/TIK2@master/bin/version)
-if [ $updatev -gt $tikver ];then
+if [ ! "$updatev" == "$tikver" ];then
 	ywarn "检测到更新：【$updatev】"
+	echo -e " \n"
 fi
 
 echo -ne "\033[36m “$shiju”"
