@@ -1,0 +1,143 @@
+
+# 设置
+function settings()
+{
+clear
+cd $LOCALDIR
+echo -e "\033[33m  > 设置 \033[0m"
+echo  
+echo "   1>修改等待时间 "
+echo  
+echo "   2>修改brotli压缩等级"
+echo  
+echo "   3>安卓-修改内置存储rom目录"
+echo  
+echo "   4>修复工具内部分依赖"
+echo  
+echo "   5>修改ROM制作者"
+echo  
+echo "   6>修改首页banner"
+echo  
+echo "   7>修改EXT4打包方案"
+echo  
+echo "   8>返回主页"
+echo -e "   --------------------------"
+read -p "   请输入编号: " op_pro
+if [ "$op_pro" == "1" ]; then
+	settings1
+elif [ "$op_pro" == "2" ]; then
+	settings2
+elif [ "$op_pro" == "3" ]; then
+	settings3
+elif [ "$op_pro" == "4" ]; then
+	update1
+elif [ "$op_pro" == "5" ]; then
+	settings4
+elif [ "$op_pro" == "6" ]; then
+	settings5
+elif [ "$op_pro" == "7" ]; then
+	settings6
+elif [ "$op_pro" == "8" ]; then
+	promenu
+else
+	echo  输入有误！
+	sleep $sleeptime
+	settings
+fi
+}
+
+function settings1()
+{
+echo 调整部分命令输出后的等待时间，当前为：$sleeptime秒
+read -p "	请输入（非负数）: " sleeptime
+if [[ ! "$sleeptime" == "" ]]; then
+sed -i 's/^sleeptime=.*/sleeptime='$sleeptime'/'  $binner/settings
+fi
+source $binner/settings
+settings
+}
+function settings2()
+{
+echo 调整brotli压缩等级（整数1-9，级别越高，压缩率越大，耗时越长），当前为：$brcom级
+read -p "	请输入（1-9）: " brcom
+if [[ ! "$brcom" == "" ]]; then
+sed -i 's/^brcom=.*/brcom='$brcom'/'  $binner/settings
+fi
+source $binner/settings
+settings
+}
+function settings3()
+{
+echo 修改安卓端在内置存储识别ROM的路径。当前为/sdcard/$mydir
+read -p "	请输入文件夹名称(英文): " mydir
+if [[ ! "$mydir" == "" ]]; then
+sed -i 's/^mydir=.*/mydir='$mydir'/'  $binner/settings
+fi
+source $binner/settings
+settings
+}
+
+function settings4()
+{
+echo "  打包时ROM作者为：$Romer"
+read -p "  请输入（无特殊字符）: " Romer
+if [[ ! "$Romer" == "" ]]; then
+sed -i 's/^Romer=.*/Romer='$Romer'/'  $binner/settings
+fi
+source $binner/settings
+settings
+}
+
+function settings5()
+{
+echo "  首页banner: [1]TIK3 [2]爷 [3]电摇嘲讽 [4]镰刀斧头 [5]镰刀斧头(大) [6]TIK2旧 "
+read -p "  请输入序号: " banner
+if [[ ! "$banner" == "" ]]; then
+sed -i 's/^banner=.*/banner='$banner'/'  $binner/settings
+fi
+source $binner/settings
+settings
+}
+
+function settings6()
+{
+echo "  ext4打包方案: [1]make_ext4fs [2]mke2fs+e2fsdroid "
+read -p "  请输入序号: " pack_op
+case $pack_op in
+    1)
+	sed -i 's/^pack_e2=.*/pack_e2='0'/'  $binner/settings
+    ;;
+	2)
+	sed -i 's/^pack_e2=.*/pack_e2='1'/'  $binner/settings
+    ;;
+    *)
+esac
+source $binner/settings
+settings
+}
+
+function update1()
+{
+packages="python3 sed python3-pip resize2fs curl default-jre bc android-sdk-libsparse-utils aria2 openjdk-11-jre zip p7zip-full"
+for i in $packages
+do
+	packs=$(dpkg -s $i)
+	if echo $packs | grep -q "install ok installed" > /dev/null ;then
+		echo -e "\033[36m  $i已安装\033[0m"
+	else
+		echo -e "\033[31m  修复安装$i\033[0m"
+		${su} apt-get install $i -y
+	fi
+done
+sleep $sleeptime
+settings
+}
+
+#Settings
+sleeptime=1
+brcom=5
+configcompl=1
+mydir=TIK
+Romer=yeliqin666
+banner=1
+pack_e2=1
