@@ -472,13 +472,11 @@ if [ "$type1" = "br" ];then
 	rm -f $sf.new.dat $sf.img
 	brotli -d $PROJECT_DIR/$filet > /dev/null
 	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat $PROJECT_DIR/$sf.img > /dev/null
-	getinfo $sf.img
+	imgextra
 elif [ "$type1" = "dat" ];then
 	rm -f $sf.img
 	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat $PROJECT_DIR/$sf.img > /dev/null
-	getinfo $sf.img
 	imgextra
-
 elif [ "$type1" = "img" ];then
 	imgextra
 elif [ "$type1" = "ofp" ];then
@@ -523,6 +521,7 @@ fi
 if [[ $userid = "root" ]]; then
 	${su} chmod 777 -R $sf > /dev/null 2>&1
 fi
+unpackChoo
 }
 
 function imgextra(){
@@ -569,6 +568,7 @@ else
 	sleep $sleeptime
 fi
 sleep $sleeptime
+unpackChoo
 }
 
 checkpath
