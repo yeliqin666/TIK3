@@ -57,9 +57,9 @@ Note: WSL 可能存在权限出错的问题 请自行判断测试
 1.  Termux内所有操作尽量【 **不要使用系统root功能** 】， PC端需要root权限(sudo) 且最好不要在【root用户登录状态下】运行此工具，以免打包后刷入手机出现权限问题 ！
 
 2.   **关于手机解压zip** 
-    - 请将zip文件放置在【 **内置存储 /sdcard/TIK2** 】，工具会自动查找（设置中可以修改)
+    - 请将zip文件放置在【 **内置存储 /sdcard/TIK3** 】，工具会自动查找（设置中可以修改)
 
-3.  手机端termux proot ubuntu下工具目录： 【**/data/data/com.termux/files/home/ubuntu/root/TIK2** 】
+3.  手机端termux proot ubuntu下工具目录： 【**/data/data/com.termux/files/home/ubuntu/root/TIK3** 】
 
 4.  **请勿删除【工程目录/TI_config文件夹】，打包时所需的文件信息都在此处，默认工具会自动帮您修改大小，适配动态分区！！！
 
