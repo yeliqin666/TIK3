@@ -284,7 +284,7 @@ if ls -d *.img >/dev/null 2>&1;then
 	do 
 	if [ -f "$img0" ] ; then
 		info=$($ebinner/gettype -i $img0)
-		if [ $(file $img0 | cut -d":" -f2 | grep "ext") ]; then
+		if [[ $(file $img0 | cut -d":" -f2 | grep "ext") ]]; then
 			file0=$(echo "$img0" )
 			filen=$((filen+1))
 			echo -e "   [$filen]- $file0 <EXT4>\n"
