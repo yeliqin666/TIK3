@@ -16,71 +16,14 @@ ywarn(){ echo -e "\033[31m${1}\033[0m" ; }	#显示打印
 ysuc(){ echo -e "\033[32m[$(date '+%H:%M:%S')]${1}\033[0m" ; }	#显示打印
 getinfo(){ export info=$($ebinner/gettype -i $1) ; }
 tikver=$(cat $binner/version)
+if [ "$platform" = "aarch64" ];then
+	command+=" -b /sdcard"
+fi
 if [[ -d "/sdcard" ]];then
 	Sourcedir=/sdcard/$mydir
 else
 	Sourcedir=$LOCALDIR
 fi
-
-# 主菜单
-function menu(){
-clear
-PROJECT_DIR=$LOCALDIR/$project
-cd $PROJECT_DIR
-
-if [[ ! -d "TI_config" ]]; then
-	ywarn "项目已损坏！"
-	menu
-fi
-
-echo -e " \033[31m>ROM菜单 \033[0m\n"
-echo -e "  项目：$project"
-if [[ -f $PROJECT_DIR/system/system/build.prop ]]; then
-	SYSTEM_DIR="$PROJECT_DIR/system/system"
-elif [[ -f $PROJECT_DIR/system/build.prop ]]; then
-	SYSTEM_DIR="$PROJECT_DIR/system"
-else
-	SYSTEM_DIR=0
-	ywarn "  非完整ROM项目"
-fi
-
-echo  
-echo -e "\033[31m    1> 项目     2> 解包\033[0m\n" 
-echo -e "\033[32m    3> 打包     4> 插件\033[0m\n" 
-echo -e "\033[32m    5> 封装\033[0m\n" 
-echo  
-read -p "    请输入编号: " op_menu
-case $op_menu in
-		1)
-        promenu
-        ;;
-		2)
-        unpackChoo
-        ;;
-		3)
-        # packmenu
-		echo ""
-		echo "维护中..."
-		echo ""
-        ;;
-		4)
-        # subbed
-		echo ""
-		echo "维护中..."
-		echo ""
-        ;;
-		5)
-		# packzip
-		echo ""
-		echo "维护中..."
-		echo ""
-		;;
-        *)
-        ywarn "   请输入正确编号!"
-		sleep $sleeptime
-        menu
-esac
-}
 
 # 配置环境
 function checkpath(){
@@ -97,8 +40,8 @@ if [[ ! -f "$binner/depment" ]]; then
 		ywarn "检测到系统sudo，将强制目录赋满权！"
 		sleep $sleeptime
 	fi
-	if [ "$platform" = "aarch64" ] && [[ ! -d "/sdcard/TIK2" ]]; then
-		mkdir /sdcard/TIK2
+	if [ "$platform" = "aarch64" ] && [[ ! -d "/sdcard/TIK3" ]]; then
+		mkdir /sdcard/TIK3
 	fi
 	yecho "开始配置环境..."
     sleep $sleeptime
@@ -137,12 +80,6 @@ author=$(echo $content| cut -d \" -f 12)
 cd $LOCALDIR  
 echo -e "\033[31m $(cat $binner/banners/$banner) \033[0m"
 echo 
-
-updatev=$(curl -s https://cdn.jsdelivr.net/gh/NightstarSakura/TIK2@master/bin/version)
-if [ ! "$updatev" == "$tikver" ];then
-	ywarn "检测到更新：【$updatev】"
-	echo -e " \n"
-fi
 
 echo -ne "\033[36m “$shiju”"
 echo -e "\033[36m---$author《$from》\033[0m"
@@ -221,6 +158,66 @@ else
 fi
 }
 
+# 主菜单
+function menu(){
+clear
+PROJECT_DIR=$LOCALDIR/$project
+cd $PROJECT_DIR
+
+if [[ ! -d "TI_config" ]]; then
+	ywarn "项目已损坏！"
+	menu
+fi
+echo -e "\n"
+echo -e " \033[31m>ROM菜单 \033[0m\n"
+echo -e "  项目：$project"
+if [[ -f $PROJECT_DIR/system/system/build.prop ]]; then
+	SYSTEM_DIR="$PROJECT_DIR/system/system"
+elif [[ -f $PROJECT_DIR/system/build.prop ]]; then
+	SYSTEM_DIR="$PROJECT_DIR/system"
+else
+	SYSTEM_DIR=0
+	ywarn "  非完整ROM项目"
+fi
+
+echo  
+echo -e "\033[31m    1> 项目     2> 解包\033[0m\n" 
+echo -e "\033[32m    3> 打包     4> 插件\033[0m\n" 
+echo -e "\033[32m    5> 封装\033[0m\n" 
+echo  
+read -p "    请输入编号: " op_menu
+case $op_menu in
+		1)
+        promenu
+        ;;
+		2)
+        unpackChoo
+        ;;
+		3)
+        # packmenu
+		echo ""
+		echo "维护中..."
+		echo ""
+        ;;
+		4)
+        # subbed
+		echo ""
+		echo "维护中..."
+		echo ""
+        ;;
+		5)
+		# packzip
+		echo ""
+		echo "维护中..."
+		echo ""
+		;;
+        *)
+        ywarn "   请输入正确编号!"
+		sleep $sleeptime
+        menu
+esac
+}
+
 function Project(){
     if ls TI_* >/dev/null 2>&1;then
 		if [ $deln -gt $pro ];then
@@ -262,7 +259,7 @@ if ls -d *.br >/dev/null 2>&1;then
 	if [ -f "$br0" ] ; then
 		file0=$(echo "$br0" )
 		filen=$((filen+1))
-		echo -e "   [$filen]- $file0\n"
+		echo -e "   [$filen]- $file0 <BR> \n"
 		eval "file$filen=$file0" 
 		eval "info$filen=br"
 	fi
@@ -275,7 +272,7 @@ if ls -d *.new.dat >/dev/null 2>&1;then
 	if [ -f "$dat0" ] ; then
 		file0=$(echo "$dat0" )
 		filen=$((filen+1))
-		echo -e "   [$filen]- $file0\n"
+		echo -e "   [$filen]- $file0 <DAT> \n"
 		eval "file$filen=$file0" 
 		eval "info$filen=dat"
 	fi
@@ -286,16 +283,11 @@ if ls -d *.img >/dev/null 2>&1;then
 	for img0 in $(ls *.img)
 	do 
 	if [ -f "$img0" ] ; then
-		getinfo $img0
-		if [ "$info" == "sparse" ]; then
+		info=$($ebinner/gettype -i $img0)
+		if [ $(file $img0 | cut -d":" -f2 | grep "ext") ]; then
 			file0=$(echo "$img0" )
 			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <SPARSE>\n"
-			eval "file$filen=$file0" 
-		elif [ "$info" == "ext" ]; then
-			file0=$(echo "$img0" )
-			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <EXT>\n"
+			echo -e "   [$filen]- $file0 <EXT4>\n"
 			eval "file$filen=$file0" 
 		elif [ "$info" == "erofs" ]; then
 			file0=$(echo "$img0" )
@@ -315,7 +307,7 @@ if ls -d *.img >/dev/null 2>&1;then
 		elif [ "$info" == "vendor_boot" ]; then
 			file0=$(echo "$img0" )
 			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <VBOOT>\n"
+			echo -e "   [$filen]- $file0 <VENDOR_BOOT>\n"
 			eval "file$filen=$file0" 
 		elif [ "$info" == "super" ]; then
 			file0=$(echo "$img0" )
@@ -325,7 +317,7 @@ if ls -d *.img >/dev/null 2>&1;then
 		else
 			file0=$(echo "$img0" )
 			filen=$((filen+1))
-			ywarn "   [$filen]- $file0 <未知>\n"
+			ywarn "   [$filen]- $file0 <UNKNOWN>\n"
 			eval "file$filen=$file0" 
 		fi
 		eval "info$filen=img"
@@ -337,11 +329,11 @@ if ls -d *.bin >/dev/null 2>&1;then
 	for bin0 in $(ls *.bin)
 	do 
 	if [ -f "$bin0" ] ; then
-		getinfo $bin0
+		info=$($ebinner/gettype -i $bin0)
 		if [ "$info" == "payload" ]; then
 			file0=$(echo "$bin0" )
 			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 \n"
+			echo -e "   [$filen]- $file0 <BIN> \n"
 			eval "file$filen=$file0" 
 			eval "info$filen=payload"
 		fi
@@ -353,11 +345,11 @@ if ls -d *.ozip >/dev/null 2>&1;then
 	for ozip0 in $(ls *.ozip)
 	do 
 	if [ -f "$ozip0" ] ; then
-		getinfo $ozip0
+		info=$($ebinner/gettype -i $ozip0)
 		if [ "$info" == "ozip" ]; then
 			file0=$(echo "$ozip0" )
 			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 \n"
+			echo -e "   [$filen]- $file0 <OZIP> \n"
 			eval "file$filen=$file0" 
 			eval "info$filen=ozip"
 		fi
@@ -369,9 +361,10 @@ if ls -d *.ofp >/dev/null 2>&1;then
 	for ofp0 in $(ls *.ofp)
 	do 
 	if [ -f "$ofp0" ] ; then
+		info=$($ebinner/gettype -i $ofp0)
 		file0=$(echo "$ozip0" )
 		filen=$((filen+1))
-		echo -e "   [$filen]- $file0 \n"
+		echo -e "   [$filen]- $file0 <OFP> \n"
 		eval "file$filen=$file0" 
 		eval "info$filen=ofp"
 	fi
@@ -384,7 +377,7 @@ if ls -d *.ops >/dev/null 2>&1;then
 	if [ -f "$ops0" ] ; then
 		file0=$(echo "$ops0" )
 		filen=$((filen+1))
-		echo -e "   [$filen]- $file0 \n"
+		echo -e "   [$filen]- $file0 <OPS> \n"
 		eval "file$filen=$file0" 
 		eval "info$filen=ops"
 	fi
@@ -397,7 +390,7 @@ if ls -d *.win >/dev/null 2>&1;then
 	if [ -f "$win0" ] ; then
 		file0=$(echo "$win0" )
 		filen=$((filen+1))
-		echo -e "   [$filen]- $file0 \n"
+		echo -e "   [$filen]- $file0 <WIN> \n"
 		eval "file$filen=$file0" 
 		eval "info$filen=win"
 	fi
@@ -422,7 +415,7 @@ if ls -d *.dat.1 >/dev/null 2>&1;then
 	if [ -f "$dat10" ] ; then
 		file0=$(echo "$dat10" )
 		filen=$((filen+1))
-		echo -e "   [$filen]- $file0 \n"
+		echo -e "   [$filen]- $file0 <分段DAT> \n"
 		eval "file$filen=$file0" 
 		eval "info$filen=dat.1"
 	fi
@@ -433,11 +426,11 @@ if ls -d *dtb* >/dev/null 2>&1;then
 	for dtb0 in $(ls *dtb*)
 	do 
 	if [ -f "$dtb0" ] ; then
-		getinfo $dtb0
+		info=$($ebinner/gettype -i $dtb0)
 		if [ "$info" == "dtb" ]; then
 			file0=$(echo "$bin0" )
 			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 \n"
+			echo -e "   [$filen]- $file0 <DTB> \n"
 			eval "file$filen=$file0" 
 			eval "info$filen=dtb"
 		fi
@@ -533,19 +526,19 @@ fi
 }
 
 function imgextra(){
-if [ $(file ${sf}.img | cut -d":" -f2 | grep "ext") ]; then
-	${su} python3 $binner/imgextractor.py $LOCALDIR/TEMP/${sf}.img $PROJECT_DIR > /dev/null
+if [[ $(file ${sf}.img | cut -d":" -f2 | grep "ext") ]]; then
+	${su} python3 $binner/imgextractor.py $LOCALDIR/${sf}.img $PROJECT_DIR
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	fi
-	rm -rf $LOCALDIR/TEMP/${sf}.img
+	rm -rf $LOCALDIR/${sf}.img
 elif [ "$info" = "erofs" ];then
-	$ebinner/erofsUnpackRust $i ./
+	$ebinner/erofsUnpackRust $LOCALDIR/${sf}.img $PROJECT_DIR
 	mv ./config/* ./TI_config&&rm -fr ./config
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	fi
-	rm -rf $LOCALDIR/TEMP/${sf}.img
+	rm -rf $LOCALDIR/${sf}.img
 elif [ "$info" = "super" ];then
 	super_size=$(du -sb "./${sf}.img" | awk '{print $1}' | bc -q)
 	yecho "super分区大小: $super_size bytes  解压${sf}.img中..."

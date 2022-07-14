@@ -2,7 +2,7 @@
 ####  **介绍** 
 
 
-1.  【 **TI Kitchen 2.0** 】 永久开源的ROM工具箱，支持安卓全版本
+1.  【 **TI Kitchen 3.0** 】 永久开源的ROM工具箱，支持安卓全版本
 
 2.  已支持大多常见镜像的分解/打包，较完善支持erofs/V-AB分区等
 
@@ -38,8 +38,8 @@ Note: WSL 可能存在权限出错的问题 请自行判断测试
 
 ####  **安装教程** 
 
-    git clone https://www.github.com/NightstarSakura/TIK2
-    cd TIK2 && bash TIK2.sh
+    git clone https://www.github.com/NightstarSakura/TIK3
+    cd TIK3 && bash TIK3.sh
 	
 ####  **【手机端--需配置proot环境】** 
 
