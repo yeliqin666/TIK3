@@ -527,18 +527,18 @@ fi
 
 function imgextra(){
 if [[ $(file ${sf}.img | cut -d":" -f2 | grep "ext") ]]; then
-	${su} python3 $binner/imgextractor.py $LOCALDIR/${sf}.img $PROJECT_DIR
+	${su} python3 $binner/imgextractor.py $PROJECT_DIR/${sf}.img $PROJECT_DIR
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	fi
-	rm -rf $LOCALDIR/${sf}.img
+	rm -rf $PROJECT_DIR/${sf}.img
 elif [ "$info" = "erofs" ];then
-	$ebinner/erofsUnpackRust $LOCALDIR/${sf}.img $PROJECT_DIR
+	$ebinner/erofsUnpackRust $PROJECT_DIR/${sf}.img $PROJECT_DIR
 	mv ./config/* ./TI_config&&rm -fr ./config
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	fi
-	rm -rf $LOCALDIR/${sf}.img
+	rm -rf $PROJECT_DIR/${sf}.img
 elif [ "$info" = "super" ];then
 	super_size=$(du -sb "./${sf}.img" | awk '{print $1}' | bc -q)
 	yecho "super分区大小: $super_size bytes  解压${sf}.img中..."
