@@ -16,6 +16,9 @@ ywarn(){ echo -e "\033[31m${1}\033[0m" ; }	#显示打印
 ysuc(){ echo -e "\033[32m[$(date '+%H:%M:%S')]${1}\033[0m" ; }	#显示打印
 getinfo(){ export info=$($ebinner/gettype -i $1) ; }
 tikver=$(cat $binner/version)
+if [ "$platform" = "aarch64" ];then
+	command+=" -b /sdcard"
+fi
 if [[ -d "/sdcard" ]];then
 	Sourcedir=/sdcard/$mydir
 else
