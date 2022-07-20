@@ -7,7 +7,7 @@ tempdir=$LOCALDIR/TEMP
 if [[ ! -d "TEMP" ]]; then
 	mkdir TEMP
 fi
-rm -rf $tempdir/*
+cleantemp(){ rm -rf $tempdir/* ; }
 MBK="$binner/MBK"
 platform=$(uname -m)
 if [[ $(uname -m) != "aarch64" ]]; then 
@@ -19,6 +19,7 @@ yecho(){ echo -e "\033[36m[$(date '+%H:%M:%S')]${1}\033[0m" ; }	#显示打印
 ywarn(){ echo -e "\033[31m${1}\033[0m" ; }	#显示打印
 ysuc(){ echo -e "\033[32m[$(date '+%H:%M:%S')]${1}\033[0m" ; }	#显示打印
 getinfo(){ export info=$($ebinner/gettype -i $1) ; }
+getsize(){ export filesize=$(du -sb $1 | awk '{print $1}' | bc -q) ; }
 #tikver=$(cat $binner/version)
 if [ "$platform" = "aarch64" ];then
 	command+=" -b /sdcard"
@@ -31,8 +32,7 @@ fi
 
 # 配置环境
 function checkpath(){
-clear
-cd $LOCALDIR
+clear && cd $LOCALDIR
 if [[ ! -f "$binner/depment" ]]; then
 	PIP_MIRROR=https://pypi.tuna.tsinghua.edu.cn/simple/
 	echo -e "\033[31m $(cat $binner/banners/1) \033[0m"
@@ -76,12 +76,11 @@ promenu
 
 # 项目菜单
 function promenu(){
-clear
+clear && cd $LOCALDIR
 content=$(curl -s https://v1.jinrishici.com/all.json)
 shiju=$(echo $content| cut -d \" -f 4 )
 from=$(echo $content| cut -d \" -f 8)
 author=$(echo $content| cut -d \" -f 12)
-cd $LOCALDIR  
 echo -e "\033[31m $(cat $binner/banners/$banner) \033[0m"
 echo 
 
@@ -109,10 +108,7 @@ echo -e ""
 echo -e " \n"
 read -p "  请输入序号：" op_pro
 if [ "$op_pro" == "55" ]; then
-	echo ""
-	echo "维护中..."
-	echo ""
-	# unpackrom
+	unpackrom
 elif [ "$op_pro" == "88" ]; then
 	echo ""
 	echo "维护中..."
@@ -139,8 +135,7 @@ fi
 
 # 新建项目
 function newpro(){
-clear
-cd $LOCALDIR
+clear && cd $LOCALDIR
 read -p "请输入项目名称(非中文)：TI_" projec
 if test -z "$projec";then
   ywarn "Input error！"
@@ -160,9 +155,8 @@ fi
 
 # 主菜单
 function menu(){
-clear
 PROJECT_DIR=$LOCALDIR/$project
-cd $PROJECT_DIR
+clear && cd $PROJECT_DIR
 
 if [[ ! -d "config" ]]; then
 	ywarn "项目已损坏！"
@@ -241,15 +235,71 @@ function Project(){
             fi
 		fi
 	else
-		ywarn  "  输入有误！"
+		ywarn  "  Input error!"
 		sleep $sleeptime
 		promenu
 	fi
 }
 
+# 解压制作
+function unpackrom()
+{
+clear && cd $Sourcedir &&zipn=0
+echo -e " \033[31m >ROM列表 \033[0m\n"
+ywarn "   请将ROM置于$Sourcedir下！"
+if ls -d $Sourcedir/*.zip >/dev/null 2>&1;then
+	cd $Sourcedir
+	for zip0 in $(ls *.zip)
+	do 
+	if [ -f "$zip0" ]; then
+		getsize $zip0 >/dev/null 2>&1
+		if [ $filesize -gt $litelim ];then
+		zip=$(echo "$zip0" )
+		zipn=$((zipn+1))
+		echo -e "   [$zipn]- $zip\n"
+		eval "zip$zipn=$zip" 
+		fi
+	fi
+	done
+	cd $LOCALDIR
+else
+	ywarn "	没有ROM文件！"
+fi
+echo -e "--------------------------------------------------\n"
+echo -e ""
+read -p "请输入对应序列号：" zipd
+if [[ $zipd =~ ^-?[1-9][0-9]*$ ]]; then
+	if [ $zipd -gt $zipn ];then
+		ywarn "Input error!" && sleep $sleeptime && promenu
+	else
+		eval "zip=\$zip$zipd"
+		zs=$(echo "$zip" | sed 's/.zip//g')
+		read -p "请输入项目名称(可留空)：" projec
+		if test -z "$projec";then
+			project=TI_$zs
+		else  
+			project=TI_$projec
+		fi
+		if [[ -d "$project" ]]; then
+			project="$project"-`date "+%m%d%H%M%S"`
+			ywarn "项目已存在！自动命名为：$project"
+		fi
+		PROJECT_DIR=$LOCALDIR/$project && mkdir $PROJECT_DIR
+		echo 创建项目:$project 成功！
+		yecho "解压刷机包中..."
+		7z x "$Sourcedir/$zip" -o"$LOCALDIR/$project/" > /dev/null
+		sleep $sleeptime
+		autounpack
+		sleep $sleeptime
+	fi
+else
+	ywarn "Input error!" && sleep $sleeptime && promenu
+fi
+}
+
+
 function unpackChoo(){
-clear
-cd $PROJECT_DIR
+clear && cd $PROJECT_DIR
 echo -e " \033[31m >分解 \033[0m\n"
 filen=0
 ywarn "   请将文件放于$PROJECT_DIR根目录下！"
@@ -440,7 +490,7 @@ if [[ "$filed" = "77" ]]; then
 	menu
 elif [[ $filed =~ ^-?[1-9][0-9]*$ ]]; then
 	if [ $filed -gt $filen ];then
-		ywarn "输入有误！"
+		ywarn "Input error!"
 		sleep $sleeptime && menu
 	else
 		eval "infile=\$file$filed"
@@ -449,7 +499,7 @@ elif [[ $filed =~ ^-?[1-9][0-9]*$ ]]; then
 		unpack $infile
 	fi
 else
-	ywarn "输入有误！！" && menu
+	ywarn "Input error!" && menu
 	sleep $sleeptime
 fi
 }
@@ -459,10 +509,10 @@ function unpack(){
 if [[ ! -d "$PROJECT_DIR/config" ]]; then
     mkdir $PROJECT_DIR/config
 fi
-rm -fr $tempdir/*
+cleantemp
 sf=$(basename $infile | rev |cut -d'.' -f1 --complement | rev | sed 's/.new.dat//g' | sed 's/.new//g')
 if [[ -d "$sf" ]]; then
-	rm -fr $sf config/${sf}.* config/${sf}_*
+	rm -fr $sf config/${sf}.* config/${sf}_* super config/super_*
 fi
 if [ "$info" = "sparse" ];then
 	yecho "当前sparseimg转换为rimg中..."
@@ -470,7 +520,7 @@ if [ "$info" = "sparse" ];then
 	yecho "解压rimg中..."
 	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 elif [ "$info" = "br" ];then
-	brotli -d $PROJECT_DIR/$infile -o $tempdir/$sf.new.dat > /dev/null
+	${su} brotli -d $infile -o $tempdir/$sf.new.dat > /dev/null
 	python3 $binner/sdat2img.py $sf.transfer.list $tempdir/$sf.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
 	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 elif [ "$info" = "dat" ];then
@@ -520,7 +570,7 @@ fi
 if [[ $userid = "root" ]]; then
 	${su} chmod 777 -R $sf > /dev/null 2>&1
 fi
-sleep 10
+cleantemp
 unpackChoo
 }
 
@@ -536,10 +586,10 @@ elif [ "$info" = "erofs" ];then
 		ywarn "解压失败"
 	fi
 elif [ "$info" = "super" ];then
-	super_size=$(du -sb "./${sf}.img" | awk '{print $1}' | bc -q)
+	super_size=$(wc -c <$infile | awk '{print $1}' | bc -q)
 	yecho "super分区大小: $super_size bytes  解压${sf}.img中..."
 	mkdir super
-	$ebinner/lpunpack $infile ./super
+	$ebinner/lpunpack $infile $PROJECT_DIR/super
 	echo $super_size >> $PROJECT_DIR/config/super_size.txt
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
@@ -562,7 +612,174 @@ else
 	sleep $sleeptime
 fi
 sleep $sleeptime
-unpackChoo
+}
+
+function packsuper()
+{
+clear && rm -f $PROJECT_DIR/super/super.img
+if [[ ! -d "super" ]]; then
+	mkdir $PROJECT_DIR/super
+fi
+ywarn "请将需要打包的分区镜像放置于$PROJECT_DIR/super中！"
+read -p "请输入打包模式：[1]A_only [2]AB [3]V-AB	" supertype
+if [ "$supertype" = "3" ];then
+	supertype=VAB
+elif [ "$supertype" = "2" ];then
+	supertype=AB
+else
+	supertype=A_only
+fi
+read -p "是否打包为sparse镜像？[1/0]	" ifsparse
+if [[ -f $PROJECT_DIR/config/super_size.txt ]]; then
+	supersize=$(cat $PROJECT_DIR/config/super_size.txt)
+fi
+read -p "检测到分解super大小为$supersize,是否按此大小继续打包？[1/0]" iforsize
+if [ "$iforsize" == "0" ];then
+	read -p "请输入super分区大小（字节数，常见9126805504 10200547328 16106127360）	" supersize
+fi
+yecho "打包到super/super.img..."
+insuper $PROJECT_DIR/super $PROJECT_DIR/super/super.img
+packmenu
+}
+
+
+# 自动解压
+function autounpack()
+{
+cd $PROJECT_DIR && mkdir config && cleantemp
+yecho "自动解包开始！"
+#VAB自动解包
+if [ -f "./payload.bin" ]; then
+	yecho "解包 payload.bin..."
+	$ebinner/payload-dumper-go ./payload.bin -o ./payload
+	yecho "payload.bin解包完成！"
+	rm -rf payload.bin && rm -rf care_map.pb && rm -rf apex_info.pb&& rm -rf payload_properties.txt
+	for infile in $(ls $PROJECT_DIR/payload/*.img)
+	do
+		sf=$(basename $infile | sed 's/.img//g')
+		yecho "检测&解包$infile..."
+		getinfo $infile
+		if [[ $info = "Unknow" ]] || [[ $info = "dtbo" ]] || [[ $sf = "dsp" ]] || [[ $info = "vbmeta" ]];then
+			ywarn "不支持自动解包！"
+		else
+			mv $infile $PROJECT_DIR && $infile=$PROJECT_DIR/$sf.img
+			imgextra
+			ysuc "成功." && rm -f $sf.img
+		fi
+	done
+	
+else
+
+# 解压br文件
+if ls *.new.dat.br >/dev/null 2>&1;then
+	ls *.new.dat.br | while read infile; do
+		sf=$(basename $infile | rev |cut -d'.' -f1 --complement | rev | sed 's/.new.dat//g')
+		yecho "解包$sf..."
+		${su} brotli -d $PROJECT_DIR/$infile -o $tempdir/$sf.new.dat > /dev/null
+		python3 $binner/sdat2img.py $sf.transfer.list $tempdir/$sf.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+		infile=$tempdir/${sf}.img && getinfo $infile && imgextra
+		rm -rf ./${sf}.new.dat.br && rm -rf ./${sf}.patch.dat && rm -rf ./${sf}.transfer.list > /dev/null 2>&1
+	done
+fi
+
+# 合并分段dat
+if ls *.dat.1 >/dev/null 2>&1;then
+	ls *.new.dat.1 | while read infile; do
+		th=$(basename $infile | cut -d"/" -f3| cut -d"." -f1)
+		yecho "合并$th.new.dat..."
+		${su} cat $PROJECT_DIR/${th}.new.dat.{1..999} >> $PROJECT_DIR/${th}.new.dat
+		rm -rf $PROJECT_DIR/${th}.new.dat.{1..999}
+	done
+fi
+
+# 解压dat
+if ls *.dat >/dev/null 2>&1;then
+	ls *.new.dat | while read infile; do
+		sf=$(basename $infile | rev |cut -d'.' -f1 --complement | rev | sed 's/.new.dat//g' | sed 's/.new//g')
+		yecho "解包$sf..."
+		${su} python3 $binner/sdat2img.py ${sf}.transfer.list ${sf}.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+		infile=$tempdir/${sf}.img && getinfo $infile && imgextra
+		rm -rf $PROJECT_DIR/${sf}.new.dat && rm -rf $PROJECT_DIR/${sf}.patch.dat && rm -rf $PROJECT_DIR/${sf}.transfer.list > /dev/null 2>&1
+	done
+fi
+
+# 解压img
+if ls *.img >/dev/null 2>&1;then
+	ls *.img | while read infile; do
+		infile=$(realpath $infile)
+		getinfo $infile
+		sf=$(basename $infile | rev |cut -d'.' -f1 --complement | rev )
+		yecho "解包$sf..."
+		if [[ $info = "Unknow" ]] || [[ $info = "dtbo" ]] || [[ $info = "vbmeta" ]];then
+			ywarn "不支持自动解包！"
+		else
+			imgextra
+			ysuc "成功." && rm -f $infile
+		fi
+	done
+fi
+
+fi
+if [[ $userid = "root" ]]; then
+${su} chmod 777 -R *
+fi
+cleantemp
+menu
+}
+
+
+
+# 打包Super
+function insuper()
+{
+Imgdir=$1
+outputimg=$2
+group_size=0
+if [[ $userid = "root" ]]; then
+	${su} chmod -R 777 $Imgdir
+fi
+find $Imgdir -name "*" -type f -size 0c | xargs -n 1 rm -f
+superpa="--metadata-size 65536 --super-name super "
+if [ "$ifsparse" = "1" ];then
+	superpa+="--sparse "
+fi
+
+if [ "$supertype" = "VAB" ];then
+	superpa+=" --virtual-ab "
+fi
+
+superpa+=" --metadata-slots $slotnumber "
+superpa+="--device super:$supersize "
+for imag in $(ls $Imgdir/*.img);do
+	image=$(echo "$imag" | rev | cut -d"/" -f1 | rev  | sed 's/_a.img//g' | sed 's/_b.img//g'| sed 's/.img//g')
+	if ! echo $superpa | grep "partition "$image":readonly" > /dev/null && ! echo $superpa | grep "partition "$image"_a:readonly" > /dev/null  ;then
+		if [ "$supertype" = "VAB" ] || [ "$supertype" = "AB" ];then
+			if [[ -f $Imgdir/${image}_a.img ]] && [[ -f $Imgdir/${image}_b.img ]];then
+				img_sizea=$(wc -c <$Imgdir/${image}_a.img) && img_sizeb=$(wc -c <$Imgdir/${image}_b.img)
+			group_size=`expr ${img_sizea} + ${img_sizeb} + ${group_size}`
+				superpa+="--partition "$image"_a:readonly:$img_sizea:main --image "$image"_a=$Imgdir/${image}_a.img --partition "$image"_b:readonly:$img_sizeb:main --image "$image"_b=$Imgdir/${image}_b.img "
+			else
+				mv $imag $Imgdir/$image.img > /dev/null 2>&1
+				img_size=$(wc -c <$Imgdir/$image.img)
+				group_size=`expr ${img_size} + ${group_size}`
+				superpa+="--partition "$image"_a:readonly:$img_size:main --image "$image"_a=$Imgdir/$image.img --partition "$image"_b:readonly:0:main "
+			fi
+		else
+			img_size=$(wc -c <$Imgdir/$image.img)
+			superpa+="--partition "$image":readonly:$img_size:main --image "$image"=$Imgdir/$image.img "
+			group_size=`expr ${img_size} + ${group_size}`
+		fi
+	fi
+done
+
+superpa+=" --group main:$group_size "
+superpa+="-F --output $outputimg"
+if ( $ebinner/lpmake $superpa 2>&1 );then
+    ysuc "成功创建super.img!"
+else
+    ywarn "创建super.img失败！"
+fi
+sleep $sleeptime
 }
 
 checkpath
