@@ -66,6 +66,7 @@ fi
 source $binner/settings
 settings
 }
+
 function settings3()
 {
 echo 修改安卓端在内置存储识别ROM的路径。当前为/sdcard/$mydir
@@ -73,6 +74,112 @@ read -p "	请输入文件夹名称(英文): " mydir
 if [[ ! "$mydir" == "" ]]; then
 sed -i 's/^mydir=.*/mydir='$mydir'/'  $binner/settings
 fi
+source $binner/settings
+settings
+}
+
+function packset1()
+{
+echo "  Img是否打包为sparse(压缩体积)[1/0]"
+read -p "  请输入序号: " ifpsparse
+case $ifpsparse in
+    1)
+	sed -i 's/^pack_sparse=.*/pack_sparse='1'/'  $binner/settings
+    ;;
+	0)
+	sed -i 's/^pack_sparse=.*/pack_sparse='0'/'  $binner/settings
+    ;;
+    *)
+esac
+source $binner/settings
+settings
+}
+
+function packset2()
+{
+read -p "  选择erofs压缩方式[1]无 [2]lz4 [3]lz4hc: " erofslim
+case $erofslim in
+    1)
+	sed -i 's/^erofslim=.*/erofslim=''/'  $binner/settings
+    ;;
+    1)
+	sed -i 's/^erofslim=.*/erofslim='-zlz4'/'  $binner/settings
+    ;;
+	2)
+	sed -i 's/^erofslim=.*/erofslim='-zlz4hc'/'  $binner/settings
+    ;;
+    *)
+esac
+source $binner/settings
+settings
+}
+
+function packset3()
+{
+read -p "  打包EXT是否可读[1]RW [2]RO: " extrw
+case $extrw in
+    2)
+	sed -i 's/^extrw=.*/extrw=''/'  $binner/settings
+    ;;
+    *)
+	sed -i 's/^extrw=.*/extrw='-s'/'  $binner/settings
+esac
+source $binner/settings
+settings
+}
+
+function packset4()
+{
+echo "  分区打包扇区数：$BLOCKSIZE"
+read -p "  请输入: " BLOCKSIZE
+if [[ ! "$BLOCKSIZE" == "" ]]; then
+sed -i 's/^BLOCKSIZE=.*/BLOCKSIZE='$BLOCKSIZE'/'  $binner/settings
+fi
+source $binner/settings
+settings
+}
+
+function packset5()
+{
+read -p "  打包Img_UTC时间戳[1]live [2]自定义: " utcstamp
+case utcstamp in
+    2)
+	read -p "  请输入: " utcstamp
+	if [[ ! "$utcstamp" == "" ]]; then
+	sed -i 's/^utcstamp=.*/utcstamp='$utcstamp'/'  $binner/settings
+	fi
+    ;;
+    *)
+	sed -i 's/^utcstamp=.*/utcstamp=''/'  $binner/settings
+esac
+source $binner/settings
+settings
+}
+
+function packset6()
+{
+read -p "  打包Ext镜像大小[1]动态最小 [2]手动改: " sizediy
+case sizediy in
+    2)
+	sed -i 's/^diysize=.*/diysize='1'/'  $binner/settings
+    ;;
+    *)
+	sed -i 's/diysize=.*/diysize=''/'  $binner/settings
+esac
+source $binner/settings
+settings
+}
+
+function packset6()
+{
+read -p "  打包镜像格式[1]同解包格式 [2]可选择: " typediy
+case typediy in
+    2)
+	sed -i 's/^diyimgtype=.*/diyimgtype='1'/'  $binner/settings
+    ;;
+    *)
+	sed -i 's/diyimgtype=.*/diyimgtype=''/'  $binner/settings
+esac
 source $binner/settings
 settings
 }
@@ -143,3 +250,10 @@ banner=1
 pack_e2=1
 slotnumber=2
 litelim=118671415
+pack_sparse=0
+BLOCKSIZE=4096
+erofslim=
+extrw=
+utcstamp=
+diysize=
+diyimgtype=

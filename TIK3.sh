@@ -486,7 +486,9 @@ echo -e "\033[33m  [77] 菜单  [88] 占位  [99] 占位\033[0m"
 echo -e "  --------------------------------------"
 read -p "  请输入对应序号：" filed
 
-if [[ "$filed" = "77" ]]; then
+if [[ "$filed" = "0" ]]; then
+	echo "维护中..."
+elif [[ "$filed" = "77" ]]; then
 	menu
 elif [[ $filed =~ ^-?[1-9][0-9]*$ ]]; then
 	if [ $filed -gt $filen ];then
@@ -518,8 +520,9 @@ echo -e "   [0]- 打包所有镜像\n"
 		part0=$(echo "$sf" )
 		partn=$((partn+1))
 		eval "part$partn=$part0" 
-		eval "type$partn=$(cat config/${sf}_type.txt)"
-		echo -e "   [$partn]- $part0 <$(cat config/${sf}_type.txt)>\n"
+		typeo=$(cat config/${sf}_type.txt)
+		eval "type$partn=$typeo"
+		echo -e "   [$partn]- $part0 <$typeo>\n"
 	fi
 	done
 fi
@@ -543,7 +546,9 @@ echo -e "\033[33m  [66] 打包Super  [77] 打包dtb  [88] 打包dtbo  [99] 菜�
 echo -e "  --------------------------------------"
 read -p "  请输入对应序号：" filed
 
-if [[ "$filed" = "66" ]]; then
+if [[ "$filed" = "0" ]]; then
+	echo "维护中..."
+elif [[ "$filed" = "66" ]]; then
 	packsuper
 elif [[ "$filed" = "77" ]]; then
 	echo "维护中..."
@@ -552,18 +557,116 @@ elif [[ "$filed" = "88" ]]; then
 elif [[ "$filed" = "99" ]]; then
 	menu
 elif [[ $filed =~ ^-?[1-9][0-9]*$ ]]; then
-	if [ $filed -gt $filen ];then
+	if [ $filed -gt $partn ];then
 		ywarn "Input error!"
 		sleep $sleeptime && menu
 	else
-		echo "维护中"
+		eval "partname=\$part$filed"
+		eval "imgtype=\$type$filed"
+		read -p "  输出文件格式[1]br [2]dat [3]img:" op_menu
+		case $op_menu in
+			1)
+			isbr=1 && isdat=1
+			;;
+			2)
+			isbr=0 && isdat=1
+			;;		
+			*)
+			isbr=0 && isdat=0
+		esac
+		if [[ "$diyimgtype" == "1" ]];then
+			echo "您要手动打包分区格式为：[1]ext4 [2]erofs" syscheck
+			case $syscheck in
+				2)
+				imgtype="erofs"
+				;;
+				*)
+				imgtype="ext4"
+			esac
+		fi
+		yecho "打包$partname..."
+		inpacker $partname >> $tiklog
 	fi
 else
 	ywarn "Input error!" && menu
 	sleep $sleeptime
 fi
+packChoo
 }
 
+inpacker(){
+source $binner/settings && cleantemp
+name=${1}
+mount_path="/$name"
+file_contexts="${PROJECT_DIR}/config/${name}_file_contexts"
+fs_config="${PROJECT_DIR}/config/${name}_fs_config"
+if [[ "$utcstamp" == "" ]];then
+	UTC=$(date -u +%s)
+fi
+if [[ ! -d "${PROJECT_DIR}/TI_out" ]]; then
+	mkdir ${PROJECT_DIR}/TI_out
+fi
+out_img="$tempdir/${name}.img"
+in_files="${PROJECT_DIR}/${name}"
+
+img_size0=$(cat $PROJECT_DIR/config/${name}_size.txt)
+img_size1=`du -sb $name | awk {'print $1'}`
+if [[ "$diysize" == "1" ]] && [ "$img_size0" -lt "$img_size1" ] ;then
+	ywarn "您设置的size过小,将动态调整size!"
+	img_size0=`echo "$img_size1 + 104857600" |bc`  
+elif [[ "$diysize" == "1" ]] ;then
+	img_size0=$img_size0
+else
+	img_size0=`echo "$img_size1 + 104857600" |bc`  
+fi
+img_size=`echo $img_size0 | sed 's/\..*//g'`
+size=`echo "$img_size0 / $BLOCKSIZE" |bc`
+python3 $binner/fspatch.py $in_files $fs_config
+echo $img_size >$PROJECT_DIR/config/${name}_size.txt
+if [[ -f "dynamic_partitions_op_list" ]]; then
+sed -i "s/resize ${name}\s.*/resize ${name} $img_size/" $PROJECT_DIR/dynamic_partitions_op_list
+fi
+if [[ "$imgtype" == "erofs" ]];then
+	${su} $ebinner/mkfs.erofs $erofslim --mount-point $mount_path --fs-config-file $fs_config --file-contexts $file_contexts $out_img $in_files
+else
+	if [ "$pack_e2" = "0" ];then
+		sed -i "/+found/d" $file_contexts
+		$ebinner/make_ext4fs -J -T $UTC -S $file_contexts -l $img_size -C $fs_config -L $name -a $name $out_img $in_files
+	else
+		$ebinner/mke2fs -O ^has_journal -L $name -I 256 -M $mount_path -m 0 -t ext4 -b $BLOCKSIZE $out_img $size
+		${su} $ebinner/e2fsdroid -e -T $UTC $extrw -C $fs_config -S $file_contexts $rw -f $in_files -a $mount_path $out_img
+	fi
+fi
+if [[ "$diysize" == "" ]] ;then
+yecho "压缩img中..."
+resize2fs -f -M $out_img
+fi
+if [ "$pack_sparse" = "1" ] || [ "$isdat" = "1" ];then
+	$ebinner/img2simg $out_img $tempdir/${name}.s.img
+	mv -f $tempdir/${name}.s.img $tempdir/${name}.img
+fi
+
+if [ "$isbr" = "1" ];then
+	rm -fr TI_out/${sf}.new.dat.br TI_out/${sf}.patch.dat TI_out/${sf}.transfer.list
+elif [ "$isdat" = "1" ];then
+	rm -fr TI_out/${sf}.new.dat TI_out/${sf}.patch.dat TI_out/${sf}.transfer.list
+else
+	mv -f $tempdir/${name}.img $PROJECT_DIR/TI_out/${name}.img
+fi
+
+if [ "$isdat" = "1" ];then
+	rm -fr TI_out/${sf}.new.* TI_out/${sf}.patch.dat TI_out/${sf}.transfer.list
+	python3 $binner/img2sdat/img2sdat.py $out_img -o $tempdir/ -v 4 -p ${name}
+	rm -rf $out_img
+fi
+if [ "$isbr" = "1" ];then
+	brotli -q $brcom $tempdir/${name}.new.dat -o $PROJECT_DIR/TI_out/${name}.new.dat.br
+	mv $tempdir/${name}.transfer.list $tempdir/${name}.patch.dat $PROJECT_DIR/TI_out
+elif [ "$isdat" = "1" ];then
+	mv $tempdir/${name}.transfer.list $tempdir/${name}.new.dat $tempdir/${name}.patch.dat $PROJECT_DIR/TI_out
+fi
+cleantemp
+}
 
 function unpack(){
 if [[ ! -d "$PROJECT_DIR/config" ]]; then
@@ -571,25 +674,21 @@ if [[ ! -d "$PROJECT_DIR/config" ]]; then
 fi
 cleantemp
 sf=$(basename $infile | rev |cut -d'.' -f1 --complement | rev | sed 's/.new.dat//g' | sed 's/.new//g')
-if [[ -d "$sf" ]]; then
-	rm -fr $sf config/${sf}.* config/${sf}_* super config/super_*
-fi
+rm -rf ${sf} config/${sf}_file_contexts config/${sf}_fs_config config/${sf}_size.txt config/${sf}_type.txt
+yecho "解包$sf中..."
 if [ "$info" = "sparse" ];then
 	yecho "当前sparseimg转换为rimg中..."
 	$ebinner/simg2img $infile $tempdir/$sf.img >> $tiklog
 	yecho "解压rimg中..."
 	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 elif [ "$info" = "br" ];then
-	yecho "解包$sf中..."
 	${su} brotli -d $infile -o $tempdir/$sf.new.dat > /dev/null
 	python3 $binner/sdat2img.py $sf.transfer.list $tempdir/$sf.new.dat $tempdir/$sf.img >/dev/null 2>&1
 	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 elif [ "$info" = "dat" ];then
-	yecho "解包$sf中..."
 	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat $tempdir/$sf.img >/dev/null 2>&1
 	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 elif [ "$info" = "img" ];then
-	yecho "解包$sf中..."
 	getinfo $infile && imgextra
 elif [ "$info" = "ofp" ];then
 	read -p " ROM机型处理器为？[1]高通 [2]MTK	" ofpm
