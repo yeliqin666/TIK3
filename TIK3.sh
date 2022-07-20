@@ -31,7 +31,7 @@ clear
 cd $LOCALDIR
 if [[ ! -f "$binner/depment" ]]; then
 	PIP_MIRROR=https://pypi.tuna.tsinghua.edu.cn/simple/
-	echo -e "\033[34m $(cat $binner/banners/1) \033[0m"
+	echo -e "\033[31m $(cat $binner/banners/1) \033[0m"
 	if [[ $(whoami) = "root" ]]; then
 		userid="root"
 	fi
@@ -52,7 +52,7 @@ if [[ ! -f "$binner/depment" ]]; then
     yecho "正在更新软件列表..."
     ${su} apt-get update  -y && ${su} apt-get upgrade -y 
     yecho "正在安装必备软件包..."
-    packages="python3 sed python3-pip brotli resize2fs curl default-jre bc android-sdk-libsparse-utils aria2 openjdk-11-jre zip p7zip-full"
+    packages="python3 sed python3-pip brotli resize2fs curl default-jre bc android-sdk-libsparse-utils aria2 openjdk-11-jre p7zip-full"
     for i in $packages; do
         yecho "安装$i..."
         ${su} apt-get install $i -y
@@ -88,7 +88,7 @@ echo -e " \n"
 echo -e " >\033[33m 项目列表 \033[0m\n"
 echo -e "\033[31m   [00]  删除项目\033[0m\n"
 echo -e "   [0]  新建项目\n"
-pro=0
+pro=0 && del=0 && chooPro=0
 if ls TI_* >/dev/null 2>&1;then
 	for pros in $(ls -d TI_*/| sed 's/\///g')
 	do 
@@ -108,7 +108,7 @@ if [ "$op_pro" == "55" ]; then
 	echo ""
 	echo "维护中..."
 	echo ""
-	# unpackRom
+	# unpackrom
 elif [ "$op_pro" == "88" ]; then
 	echo ""
 	echo "维护中..."
@@ -116,8 +116,7 @@ elif [ "$op_pro" == "88" ]; then
 	# tiklab
 elif [ "$op_pro" == "00" ]; then
 	read -p "  请输入你要删除的项目序号：" deln
-    del=1
-	Project
+    del=1 && Project
 elif [ "$op_pro" == "0" ]; then
 	newpro
 elif [ "$op_pro" == "66" ]; then
@@ -126,8 +125,7 @@ elif [ "$op_pro" == "66" ]; then
 elif [ "$op_pro" == "77" ]; then
 	settings
 elif [[ $op_pro =~ ^-?[1-9][0-9]*$ ]]; then
-	chooPro=1
-    Project
+	chooPro=1 && Project
 else
 	ywarn "  请输入正确编号!"
 	sleep $sleeptime
@@ -139,21 +137,19 @@ fi
 function newpro(){
 clear
 cd $LOCALDIR
-echo " "
 read -p "请输入项目名称(非中文)：TI_" projec
 if test -z "$projec";then
-  ywarn "Input ereor！"
+  ywarn "Input error！"
   sleep $sleeptime
   promenu
 else  
   project=TI_$projec
   if [[ -d "$project" ]]; then
-	project="$project"-`date "+%Y%m%d%H%M%S"`
+	project="$project"-`date "+%m%d%H%M%S"`
 	ywarn "项目已存在！自动命名为：$project"
 	sleep $sleeptime
   fi
-  mkdir $project
-  mkdir $project/TI_config
+  mkdir $project $project/config
   menu
 fi
 }
@@ -164,7 +160,7 @@ clear
 PROJECT_DIR=$LOCALDIR/$project
 cd $PROJECT_DIR
 
-if [[ ! -d "TI_config" ]]; then
+if [[ ! -d "config" ]]; then
 	ywarn "项目已损坏！"
 	menu
 fi
@@ -254,12 +250,13 @@ echo -e " \033[31m >分解 \033[0m\n"
 filen=0
 ywarn "   请将文件放于$PROJECT_DIR根目录下！"
 if ls -d *.br >/dev/null 2>&1;then
+echo -e "\033[33m   [Br]文件\033[0m\n"
 	for br0 in $(ls *.br)
 	do 
 	if [ -f "$br0" ] ; then
 		file0=$(echo "$br0" )
 		filen=$((filen+1))
-		echo -e "   [$filen]- $file0 <BR> \n"
+		echo -e "   [$filen]- $file0\n"
 		eval "file$filen=$file0" 
 		eval "info$filen=br"
 	fi
@@ -267,59 +264,55 @@ if ls -d *.br >/dev/null 2>&1;then
 fi
 
 if ls -d *.new.dat >/dev/null 2>&1;then
+echo -e "\033[33m   [Dat]文件\033[0m\n"
 	for dat0 in $(ls *.new.dat)
 	do 
 	if [ -f "$dat0" ] ; then
 		file0=$(echo "$dat0" )
 		filen=$((filen+1))
-		echo -e "   [$filen]- $file0 <DAT> \n"
+		echo -e "   [$filen]- $file0\n"
 		eval "file$filen=$file0" 
 		eval "info$filen=dat"
 	fi
 	done
 fi
 
+if ls -d *.new.dat.1 >/dev/null 2>&1;then
+	for dat10 in $(ls *.dat.1)
+	do 
+	if [ -f "$dat10" ] ; then
+		file0=$(echo "$dat10" )
+		filen=$((filen+1))
+		echo -e "   [$filen]- $file0 <分段DAT> \n"
+		eval "file$filen=$file0" 
+		eval "info$filen=dat.1"
+	fi
+	done
+fi
+
 if ls -d *.img >/dev/null 2>&1;then
+echo -e "\033[33m   [Img]文件\033[0m\n"
 	for img0 in $(ls *.img)
 	do 
 	if [ -f "$img0" ] ; then
 		info=$($ebinner/gettype -i $img0)
+		filen=$((filen+1))
 		if [[ $(file $img0 | cut -d":" -f2 | grep "ext") ]]; then
-			file0=$(echo "$img0" )
-			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <EXT4>\n"
-			eval "file$filen=$file0" 
+			echo -e "   [$filen]- $img0 <EXT4>\n"
 		elif [ "$info" == "erofs" ]; then
-			file0=$(echo "$img0" )
-			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <EROFS>\n"
-			eval "file$filen=$file0" 
+			echo -e "   [$filen]- $img0 <EROFS>\n"
 		elif [ "$info" == "dtbo" ]; then
-			file0=$(echo "$img0" )
-			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <DTBO>\n"
-			eval "file$filen=$file0" 
+			echo -e "   [$filen]- $img0 <DTBO>\n"
 		elif [ "$info" == "boot" ]; then
-			file0=$(echo "$img0" )
-			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <BOOT>\n"
-			eval "file$filen=$file0" 
+			echo -e "   [$filen]- $img0 <BOOT>\n"
 		elif [ "$info" == "vendor_boot" ]; then
-			file0=$(echo "$img0" )
-			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <VENDOR_BOOT>\n"
-			eval "file$filen=$file0" 
+			echo -e "   [$filen]- $img0 <VENDOR_BOOT>\n"
 		elif [ "$info" == "super" ]; then
-			file0=$(echo "$img0" )
-			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <SUPER>\n"
-			eval "file$filen=$file0" 
+			echo -e "   [$filen]- $img0 <SUPER>\n"
 		else
-			file0=$(echo "$img0" )
-			filen=$((filen+1))
-			ywarn "   [$filen]- $file0 <UNKNOWN>\n"
-			eval "file$filen=$file0" 
+			ywarn "   [$filen]- $img0 <UNKNOWN>\n"
 		fi
+		eval "file$filen=$img0" 
 		eval "info$filen=img"
 	fi
 	done
@@ -333,7 +326,7 @@ if ls -d *.bin >/dev/null 2>&1;then
 		if [ "$info" == "payload" ]; then
 			file0=$(echo "$bin0" )
 			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <BIN> \n"
+			echo -e "   [$filen]- $file0 <BIN>\n"
 			eval "file$filen=$file0" 
 			eval "info$filen=payload"
 		fi
@@ -342,6 +335,7 @@ if ls -d *.bin >/dev/null 2>&1;then
 fi
 
 if ls -d *.ozip >/dev/null 2>&1;then
+echo -e "\033[33m   [Ozip]文件\033[0m\n"
 	for ozip0 in $(ls *.ozip)
 	do 
 	if [ -f "$ozip0" ] ; then
@@ -349,7 +343,7 @@ if ls -d *.ozip >/dev/null 2>&1;then
 		if [ "$info" == "ozip" ]; then
 			file0=$(echo "$ozip0" )
 			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <OZIP> \n"
+			echo -e "   [$filen]- $file0\n"
 			eval "file$filen=$file0" 
 			eval "info$filen=ozip"
 		fi
@@ -358,13 +352,14 @@ if ls -d *.ozip >/dev/null 2>&1;then
 fi
 
 if ls -d *.ofp >/dev/null 2>&1;then
+echo -e "\033[33m   [Ofp]文件\033[0m\n"
 	for ofp0 in $(ls *.ofp)
 	do 
 	if [ -f "$ofp0" ] ; then
 		info=$($ebinner/gettype -i $ofp0)
 		file0=$(echo "$ozip0" )
 		filen=$((filen+1))
-		echo -e "   [$filen]- $file0 <OFP> \n"
+		echo -e "   [$filen]- $file0\n"
 		eval "file$filen=$file0" 
 		eval "info$filen=ofp"
 	fi
@@ -372,12 +367,13 @@ if ls -d *.ofp >/dev/null 2>&1;then
 fi
 
 if ls -d *.ops >/dev/null 2>&1;then
+echo -e "\033[33m   [Ops]文件\033[0m\n"
 	for ops0 in $(ls *.ops)
 	do 
 	if [ -f "$ops0" ] ; then
 		file0=$(echo "$ops0" )
 		filen=$((filen+1))
-		echo -e "   [$filen]- $file0 <OPS> \n"
+		echo -e "   [$filen]- $file0\n"
 		eval "file$filen=$file0" 
 		eval "info$filen=ops"
 	fi
@@ -385,6 +381,7 @@ if ls -d *.ops >/dev/null 2>&1;then
 fi
 
 if ls -d *.win >/dev/null 2>&1;then
+echo -e "\033[33m   [Win]文件\033[0m\n"
 	for win0 in $(ls *.win)
 	do 
 	if [ -f "$win0" ] ; then
@@ -409,28 +406,16 @@ if ls -d *.win000 >/dev/null 2>&1;then
 	fi
 	done
 fi
-if ls -d *.dat.1 >/dev/null 2>&1;then
-	for dat10 in $(ls *.dat.1)
-	do 
-	if [ -f "$dat10" ] ; then
-		file0=$(echo "$dat10" )
-		filen=$((filen+1))
-		echo -e "   [$filen]- $file0 <分段DAT> \n"
-		eval "file$filen=$file0" 
-		eval "info$filen=dat.1"
-	fi
-	done
-fi
-
-if ls -d *dtb* >/dev/null 2>&1;then
-	for dtb0 in $(ls *dtb*)
+if ls -d *dtb >/dev/null 2>&1;then
+echo -e "\033[33m   [Dtb]文件\033[0m\n"
+	for dtb0 in $(ls *dtb)
 	do 
 	if [ -f "$dtb0" ] ; then
 		info=$($ebinner/gettype -i $dtb0)
 		if [ "$info" == "dtb" ]; then
 			file0=$(echo "$bin0" )
 			filen=$((filen+1))
-			echo -e "   [$filen]- $file0 <DTB> \n"
+			echo -e "   [$filen]- $file0\n"
 			eval "file$filen=$file0" 
 			eval "info$filen=dtb"
 		fi
@@ -439,20 +424,20 @@ if ls -d *dtb* >/dev/null 2>&1;then
 fi
 
 echo -e ""
-echo -e "\033[33m  [88] 菜单\033[0m"
-echo -e ""
-read -p "请输入对应序号：" filed
+echo -e "\033[33m  [77] 菜单  [88] 占位  [99] 占位\033[0m"
+echo -e "  --------------------------------------"
+read -p "  请输入对应序号：" filed
 
-if [[ "$filed" = "88" ]]; then
+if [[ "$filed" = "77" ]]; then
 	menu
 elif [[ $filed =~ ^-?[1-9][0-9]*$ ]]; then
 	if [ $filed -gt $filen ];then
 		ywarn "输入有误！"
 		sleep $sleeptime && menu
 	else
-		eval "i=\$file$filed"
-		eval "type1=\$info$filed"
-		unpack $i
+		eval "infile=\$file$filed"
+		eval "info=\$info$filed"
+		unpack $infile
 	fi
 else
 	ywarn "输入有误！！" && menu
@@ -462,38 +447,39 @@ fi
 
 
 function unpack(){
-if [[ ! -d "$PROJECT_DIR/TI_config" ]]; then
-    mkdir $PROJECT_DIR/TI_config
+if [[ ! -d "$PROJECT_DIR/config" ]]; then
+    mkdir $PROJECT_DIR/config
 fi
-filet=${i}
-echo $filet $type1
-sf=$(echo "$i" | rev |cut -d'.' -f1 --complement | rev | sed 's/.new.dat//g' | sed 's/.new//g')
-if [ "$type1" = "br" ];then
+sf=$(echo "$infile" | rev |cut -d'.' -f1 --complement | rev | sed 's/.new.dat//g' | sed 's/.new//g')
+if [[ -d "$sf" ]]; then
+	rm -fr $sf config/${sf}.* config/${sf}_*
+fi
+if [ "$info" = "br" ];then
 	rm -f $sf.new.dat $sf.img
-	brotli -d $PROJECT_DIR/$filet > /dev/null
+	brotli -d $PROJECT_DIR/$infile > /dev/null
 	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat $PROJECT_DIR/$sf.img > /dev/null
-	imgextra
-elif [ "$type1" = "dat" ];then
+	infile=${sf}.img && getinfo $infile && imgextra
+elif [ "$info" = "dat" ];then
 	rm -f $sf.img
 	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat $PROJECT_DIR/$sf.img > /dev/null
-	imgextra
-elif [ "$type1" = "img" ];then
-	imgextra
-elif [ "$type1" = "ofp" ];then
-	read -p " ROM机型处理器为？?[1]高通 [2]MTK	" ofpm
+	infile=${sf}.img && getinfo $infile && imgextra
+elif [ "$info" = "img" ];then
+	getinfo $infile && imgextra
+elif [ "$info" = "ofp" ];then
+	read -p " ROM机型处理器为？[1]高通 [2]MTK	" ofpm
 	if [ "$ofpm" = "1" ]; then
 		python3 $binner/oppo_decrypt/ofp_qc_decrypt.py $PROJECT_DIR/$filet $PROJECT_DIR/$sf
 	elif [ "$ofpm" = "2" ];then
 		python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $PROJECT_DIR/$filet $PROJECT_DIR/$sf
 	fi
-elif [ "$type1" = "ozip" ];then
+elif [ "$info" = "ozip" ];then
 	python3 $binner/oppo_decrypt/ozipdecrypt.py $PROJECT_DIR/$filet
-elif [ "$type1" = "ops" ];then
+elif [ "$info" = "ops" ];then
 	python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $PROJECT_DIR/$filet $PROJECT_DIR/$sf
-elif [ "$type1" = "bin" ];then
+elif [ "$info" = "bin" ];then
 	yecho "$file所含分区列表："
 	$ebinner/payload-dumper-go -l $PROJECT_DIR/$filet
-	read -p "请输入需要解压的分区名(空格隔开)/all	" extp </dev/tty
+	read -p "请输入需要解压的分区名(空格隔开)/all[全部]	" extp </dev/tty
 	if [ "$extp" = "all" ];then 
 		$ebinner/payload-dumper-go $PROJECT_DIR/$filet -o $PROJECT_DIR/payload
 	else
@@ -503,15 +489,15 @@ elif [ "$type1" = "bin" ];then
 		for d in $extp
 		do
 			$ebinner/payload-dumper-go -p $d $PROJECT_DIR/$filet -o $PROJECT_DIR/payload${d} > /dev/null 2>&1
-			mv $PROJECT_DIR/payload${d} $PROJECT_DIR/payload&&rm -fr payload${d}
+			mv $PROJECT_DIR/payload${d} $PROJECT_DIR/payload && rm -fr payload${d}
 		done
 	fi
-elif [ "$type1" = "win000" ];then
+elif [ "$info" = "win000" ];then
 	${su} $ebinner/simg2img *${sf}.win* ./${sf}.win
 	${su} python3 $binner/imgextractor.py ./${sf}.win ./
-elif [ "$type1" = "win" ];then
+elif [ "$info" = "win" ];then
 	${su} python3 $binner/imgextractor.py ./${sf}.win ./
-elif [ "$type1" = "dat.1" ];then
+elif [ "$info" = "dat.1" ];then
 	${su} cat ./${sf}.new.dat.{1..999} >> ./${sf}.new.dat
 	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat ./$sf.img
 	imgextra
@@ -525,15 +511,14 @@ unpackChoo
 }
 
 function imgextra(){
-if [[ $(file ${sf}.img | cut -d":" -f2 | grep "ext") ]]; then
-	${su} python3 $binner/imgextractor.py $PROJECT_DIR/${sf}.img $PROJECT_DIR
+if [[ $(file $infile | cut -d":" -f2 | grep "ext") ]]; then
+	${su} python3 $binner/imgextractor.py $PROJECT_DIR/${sf}.img $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	fi
 	rm -rf $PROJECT_DIR/${sf}.img
 elif [ "$info" = "erofs" ];then
-	$ebinner/erofsUnpackRust $PROJECT_DIR/${sf}.img $PROJECT_DIR
-	mv ./config/* ./TI_config&&rm -fr ./config
+	$ebinner/erofsUnpackRust $PROJECT_DIR/${sf}.img $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	fi
@@ -542,8 +527,8 @@ elif [ "$info" = "super" ];then
 	super_size=$(du -sb "./${sf}.img" | awk '{print $1}' | bc -q)
 	yecho "super分区大小: $super_size bytes  解压${sf}.img中..."
 	mkdir super
-	TARGETDIR=./super
-	$ebinner/lpunpack $PROJECT_DIR/${sf}.img $TARGETDIR
+	$ebinner/lpunpack $PROJECT_DIR/${sf}.img ./super
+	echo $super_size >> $PROJECT_DIR/config/super_size.txt
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	else
@@ -553,12 +538,9 @@ elif [ "$info" = "super" ];then
         fi
 	fi
 elif [ "$info" = "boot" ] || [ "$sf" == "boot" ] || [ "$sf" == "vendor_boot" ] || [ "$sf" == "recovery" ] ; then
-	if [[ -d "$sf" ]]; then
-		rm -fr $sf
-	fi
 	${su} mkdir $sf && cd $sf
-	${su} bash $MBK/unpackimg.sh $PROJECT_DIR/$i >> $PROJECT_DIR/TI_config/$sf.info
-	${su} cp -f $PROJECT_DIR/$i $PROJECT_DIR/TI_config
+	${su} bash $MBK/unpackimg.sh $PROJECT_DIR/$infile >> $PROJECT_DIR/config/$sf.info
+	${su} cp -f $PROJECT_DIR/$infile $PROJECT_DIR/config
     if [[ $userid = "root" ]]; then
         ${su} chmod 777 -R ./$sf
     fi
