@@ -3,7 +3,11 @@
 LOCALDIR="$(cd $(dirname $0); pwd)"
 binner=$LOCALDIR/bin
 source $binner/settings
-rm -rf $LOCALDIR/TEMP/*
+tempdir=$LOCALDIR/TEMP
+if [[ ! -d "TEMP" ]]; then
+	mkdir TEMP
+fi
+rm -rf $tempdir/*
 MBK="$binner/MBK"
 platform=$(uname -m)
 if [[ $(uname -m) != "aarch64" ]]; then 
@@ -15,7 +19,7 @@ yecho(){ echo -e "\033[36m[$(date '+%H:%M:%S')]${1}\033[0m" ; }	#显示打印
 ywarn(){ echo -e "\033[31m${1}\033[0m" ; }	#显示打印
 ysuc(){ echo -e "\033[32m[$(date '+%H:%M:%S')]${1}\033[0m" ; }	#显示打印
 getinfo(){ export info=$($ebinner/gettype -i $1) ; }
-tikver=$(cat $binner/version)
+#tikver=$(cat $binner/version)
 if [ "$platform" = "aarch64" ];then
 	command+=" -b /sdcard"
 fi
@@ -314,6 +318,9 @@ echo -e "\033[33m   [Img]文件\033[0m\n"
 		fi
 		eval "file$filen=$img0" 
 		eval "info$filen=img"
+		if [ "$info" == "sparse" ]; then
+			echo -e "   [$filen]- $img0 <Sparse>\n"
+		fi
 	fi
 	done
 fi
@@ -417,6 +424,7 @@ echo -e "\033[33m   [Dtb]文件\033[0m\n"
 			filen=$((filen+1))
 			echo -e "   [$filen]- $file0\n"
 			eval "file$filen=$file0" 
+			infile=$PROJECT_DIR/$infile
 			eval "info$filen=dtb"
 		fi
 	fi
@@ -436,6 +444,7 @@ elif [[ $filed =~ ^-?[1-9][0-9]*$ ]]; then
 		sleep $sleeptime && menu
 	else
 		eval "infile=\$file$filed"
+		infile=$PROJECT_DIR/$infile
 		eval "info=\$info$filed"
 		unpack $infile
 	fi
@@ -450,84 +459,87 @@ function unpack(){
 if [[ ! -d "$PROJECT_DIR/config" ]]; then
     mkdir $PROJECT_DIR/config
 fi
-sf=$(echo "$infile" | rev |cut -d'.' -f1 --complement | rev | sed 's/.new.dat//g' | sed 's/.new//g')
+rm -fr $tempdir/*
+sf=$(basename $infile | rev |cut -d'.' -f1 --complement | rev | sed 's/.new.dat//g' | sed 's/.new//g')
 if [[ -d "$sf" ]]; then
 	rm -fr $sf config/${sf}.* config/${sf}_*
 fi
-if [ "$info" = "br" ];then
-	rm -f $sf.new.dat $sf.img
-	brotli -d $PROJECT_DIR/$infile > /dev/null
-	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat $PROJECT_DIR/$sf.img > /dev/null
-	infile=${sf}.img && getinfo $infile && imgextra
+if [ "$info" = "sparse" ];then
+	yecho "当前sparseimg转换为rimg中..."
+	$ebinner/simg2img $infile $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+	yecho "解压rimg中..."
+	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
+elif [ "$info" = "br" ];then
+	brotli -d $PROJECT_DIR/$infile -o $tempdir/$sf.new.dat > /dev/null
+	python3 $binner/sdat2img.py $sf.transfer.list $tempdir/$sf.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 elif [ "$info" = "dat" ];then
-	rm -f $sf.img
-	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat $PROJECT_DIR/$sf.img > /dev/null
-	infile=${sf}.img && getinfo $infile && imgextra
+	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 elif [ "$info" = "img" ];then
 	getinfo $infile && imgextra
 elif [ "$info" = "ofp" ];then
 	read -p " ROM机型处理器为？[1]高通 [2]MTK	" ofpm
 	if [ "$ofpm" = "1" ]; then
-		python3 $binner/oppo_decrypt/ofp_qc_decrypt.py $PROJECT_DIR/$filet $PROJECT_DIR/$sf
+		python3 $binner/oppo_decrypt/ofp_qc_decrypt.py $infile $PROJECT_DIR/$sf >> $PROJECT_DIR/config/$sf.info
 	elif [ "$ofpm" = "2" ];then
-		python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $PROJECT_DIR/$filet $PROJECT_DIR/$sf
+		python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $infile $PROJECT_DIR/$sf >> $PROJECT_DIR/config/$sf.info
 	fi
 elif [ "$info" = "ozip" ];then
-	python3 $binner/oppo_decrypt/ozipdecrypt.py $PROJECT_DIR/$filet
+	python3 $binner/oppo_decrypt/ozipdecrypt.py $infile >> $PROJECT_DIR/config/$sf.info
 elif [ "$info" = "ops" ];then
-	python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $PROJECT_DIR/$filet $PROJECT_DIR/$sf
+	python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $infile $PROJECT_DIR/$sf >> $PROJECT_DIR/config/$sf.info
 elif [ "$info" = "bin" ];then
 	yecho "$file所含分区列表："
-	$ebinner/payload-dumper-go -l $PROJECT_DIR/$filet
+	$ebinner/payload-dumper-go -l $infile
 	read -p "请输入需要解压的分区名(空格隔开)/all[全部]	" extp </dev/tty
 	if [ "$extp" = "all" ];then 
-		$ebinner/payload-dumper-go $PROJECT_DIR/$filet -o $PROJECT_DIR/payload
+		$ebinner/payload-dumper-go $infile -o $PROJECT_DIR/payload >> $PROJECT_DIR/config/$sf.info
 	else
 		if [[ ! -d "payload" ]]; then
 			mkdir $PROJECT_DIR/payload
 		fi
 		for d in $extp
 		do
-			$ebinner/payload-dumper-go -p $d $PROJECT_DIR/$filet -o $PROJECT_DIR/payload${d} > /dev/null 2>&1
+			$ebinner/payload-dumper-go -p $d $infile -o $PROJECT_DIR/payload${d} >> $PROJECT_DIR/config/$sf.info
 			mv $PROJECT_DIR/payload${d} $PROJECT_DIR/payload && rm -fr payload${d}
 		done
 	fi
 elif [ "$info" = "win000" ];then
-	${su} $ebinner/simg2img *${sf}.win* ./${sf}.win
-	${su} python3 $binner/imgextractor.py ./${sf}.win ./
+	${su} $ebinner/simg2img *${sf}.win* $PROJECT_DIR/${sf}.win >> $PROJECT_DIR/config/$sf.info
+	${su} python3 $binner/imgextractor.py $PROJECT_DIR/${sf}.win $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
 elif [ "$info" = "win" ];then
-	${su} python3 $binner/imgextractor.py ./${sf}.win ./
+	${su} python3 $binner/imgextractor.py $infile $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
 elif [ "$info" = "dat.1" ];then
-	${su} cat ./${sf}.new.dat.{1..999} >> ./${sf}.new.dat
-	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat ./$sf.img
-	imgextra
+	${su} cat ./${sf}.new.dat.{1..999} >> $tempdir/${sf}.new.dat
+	python3 $binner/sdat2img.py $sf.transfer.list $tempdir/${sf}.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 else
 	ywarn "未知格式！"
 fi
 if [[ $userid = "root" ]]; then
 	${su} chmod 777 -R $sf > /dev/null 2>&1
 fi
+sleep 10
 unpackChoo
 }
 
 function imgextra(){
-if [[ $(file $infile | cut -d":" -f2 | grep "ext") ]]; then
-	${su} python3 $binner/imgextractor.py $PROJECT_DIR/${sf}.img $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
+if [ "$info" = "ext" ]; then
+	${su} python3 $binner/imgextractor.py $infile $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	fi
-	rm -rf $PROJECT_DIR/${sf}.img
 elif [ "$info" = "erofs" ];then
-	$ebinner/erofsUnpackRust $PROJECT_DIR/${sf}.img $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
+	$ebinner/erofsUnpackRust $infile $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	fi
-	rm -rf $PROJECT_DIR/${sf}.img
 elif [ "$info" = "super" ];then
 	super_size=$(du -sb "./${sf}.img" | awk '{print $1}' | bc -q)
 	yecho "super分区大小: $super_size bytes  解压${sf}.img中..."
 	mkdir super
-	$ebinner/lpunpack $PROJECT_DIR/${sf}.img ./super
+	$ebinner/lpunpack $infile ./super
 	echo $super_size >> $PROJECT_DIR/config/super_size.txt
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
@@ -539,8 +551,8 @@ elif [ "$info" = "super" ];then
 	fi
 elif [ "$info" = "boot" ] || [ "$sf" == "boot" ] || [ "$sf" == "vendor_boot" ] || [ "$sf" == "recovery" ] ; then
 	${su} mkdir $sf && cd $sf
-	${su} bash $MBK/unpackimg.sh $PROJECT_DIR/$infile >> $PROJECT_DIR/config/$sf.info
-	${su} cp -f $PROJECT_DIR/$infile $PROJECT_DIR/config
+	${su} bash $MBK/unpackimg.sh $infile >> $PROJECT_DIR/config/$sf.info
+	${su} cp -f $infile $PROJECT_DIR/config
     if [[ $userid = "root" ]]; then
         ${su} chmod 777 -R ./$sf
     fi
