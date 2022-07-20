@@ -4,10 +4,12 @@ LOCALDIR="$(cd $(dirname $0); pwd)"
 binner=$LOCALDIR/bin
 source $binner/settings
 tempdir=$LOCALDIR/TEMP
+tiklog=$LOCALDIR/TIK3_`date "+%y%m%d"`.log
 if [[ ! -d "TEMP" ]]; then
 	mkdir TEMP
 fi
 cleantemp(){ rm -rf $tempdir/* ; }
+cleantemp && rm -rf *.log
 MBK="$binner/MBK"
 platform=$(uname -m)
 if [[ $(uname -m) != "aarch64" ]]; then 
@@ -115,7 +117,7 @@ elif [ "$op_pro" == "88" ]; then
 	echo ""
 	# tiklab
 elif [ "$op_pro" == "00" ]; then
-	read -p "  请输入你要删除的项目序号：" deln
+	read -p "  请输入你要删除的项目序号：" op_pro
     del=1 && Project
 elif [ "$op_pro" == "0" ]; then
 	newpro
@@ -127,7 +129,7 @@ elif [ "$op_pro" == "77" ]; then
 elif [[ $op_pro =~ ^-?[1-9][0-9]*$ ]]; then
 	chooPro=1 && Project
 else
-	ywarn "  请输入正确编号!"
+	ywarn "  Input error!"
 	sleep $sleeptime
 	promenu
 fi
@@ -188,10 +190,7 @@ case $op_menu in
         unpackChoo
         ;;
 		3)
-        # packmenu
-		echo ""
-		echo "维护中..."
-		echo ""
+        packChoo
         ;;
 		4)
         # subbed
@@ -206,7 +205,7 @@ case $op_menu in
 		echo ""
 		;;
         *)
-        ywarn "   请输入正确编号!"
+        ywarn "   Input error!"
 		sleep $sleeptime
         menu
 esac
@@ -214,13 +213,13 @@ esac
 
 function Project(){
     if ls TI_* >/dev/null 2>&1;then
-		if [ $deln -gt $pro ];then
-			ywarn "  请输入正确编号!"
+		if [ $op_pro -gt $pro ];then
+			ywarn "  Input error!"
 			sleep $sleeptime
 			promenu
 		else
             if [[ "$del" == "1" ]]; then
-                eval "delproject=\$pro$deln"
+                eval "delproject=\$pro$op_pro"
                 read -p "  确认删除？[1/0]" delr
                 if [ "$delr" == "1" ];then
                     rm -fr $delproject
@@ -297,14 +296,15 @@ else
 fi
 }
 
-
 function unpackChoo(){
 clear && cd $PROJECT_DIR
 echo -e " \033[31m >分解 \033[0m\n"
 filen=0
-ywarn "   请将文件放于$PROJECT_DIR根目录下！"
+ywarn " 请将文件放于$project根目录下！"
+echo  
+echo -e " [0]- 分解所有文件\n"
 if ls -d *.br >/dev/null 2>&1;then
-echo -e "\033[33m   [Br]文件\033[0m\n"
+echo -e "\033[33m [Br]文件\033[0m\n"
 	for br0 in $(ls *.br)
 	do 
 	if [ -f "$br0" ] ; then
@@ -318,7 +318,7 @@ echo -e "\033[33m   [Br]文件\033[0m\n"
 fi
 
 if ls -d *.new.dat >/dev/null 2>&1;then
-echo -e "\033[33m   [Dat]文件\033[0m\n"
+echo -e "\033[33m [Dat]文件\033[0m\n"
 	for dat0 in $(ls *.new.dat)
 	do 
 	if [ -f "$dat0" ] ; then
@@ -345,7 +345,7 @@ if ls -d *.new.dat.1 >/dev/null 2>&1;then
 fi
 
 if ls -d *.img >/dev/null 2>&1;then
-echo -e "\033[33m   [Img]文件\033[0m\n"
+echo -e "\033[33m [Img]文件\033[0m\n"
 	for img0 in $(ls *.img)
 	do 
 	if [ -f "$img0" ] ; then
@@ -392,7 +392,7 @@ if ls -d *.bin >/dev/null 2>&1;then
 fi
 
 if ls -d *.ozip >/dev/null 2>&1;then
-echo -e "\033[33m   [Ozip]文件\033[0m\n"
+echo -e "\033[33m [Ozip]文件\033[0m\n"
 	for ozip0 in $(ls *.ozip)
 	do 
 	if [ -f "$ozip0" ] ; then
@@ -409,7 +409,7 @@ echo -e "\033[33m   [Ozip]文件\033[0m\n"
 fi
 
 if ls -d *.ofp >/dev/null 2>&1;then
-echo -e "\033[33m   [Ofp]文件\033[0m\n"
+echo -e "\033[33m [Ofp]文件\033[0m\n"
 	for ofp0 in $(ls *.ofp)
 	do 
 	if [ -f "$ofp0" ] ; then
@@ -424,7 +424,7 @@ echo -e "\033[33m   [Ofp]文件\033[0m\n"
 fi
 
 if ls -d *.ops >/dev/null 2>&1;then
-echo -e "\033[33m   [Ops]文件\033[0m\n"
+echo -e "\033[33m [Ops]文件\033[0m\n"
 	for ops0 in $(ls *.ops)
 	do 
 	if [ -f "$ops0" ] ; then
@@ -438,7 +438,7 @@ echo -e "\033[33m   [Ops]文件\033[0m\n"
 fi
 
 if ls -d *.win >/dev/null 2>&1;then
-echo -e "\033[33m   [Win]文件\033[0m\n"
+echo -e "\033[33m [Win]文件\033[0m\n"
 	for win0 in $(ls *.win)
 	do 
 	if [ -f "$win0" ] ; then
@@ -464,7 +464,7 @@ if ls -d *.win000 >/dev/null 2>&1;then
 	done
 fi
 if ls -d *dtb >/dev/null 2>&1;then
-echo -e "\033[33m   [Dtb]文件\033[0m\n"
+echo -e "\033[33m [Dtb]文件\033[0m\n"
 	for dtb0 in $(ls *dtb)
 	do 
 	if [ -f "$dtb0" ] ; then
@@ -505,6 +505,66 @@ fi
 }
 
 
+function packChoo(){
+clear && cd $PROJECT_DIR
+echo -e " \033[31m >打包 \033[0m\n"
+partn=0
+if ls -d config/*_fs_config >/dev/null 2>&1;then
+echo -e "   [0]- 打包所有镜像\n"
+	for packs in $(ls config/*_fs_config)
+	do
+	sf=$(basename $packs | sed 's/_fs_config//g')
+	if [ -f "$packs" ] ; then
+		part0=$(echo "$sf" )
+		partn=$((partn+1))
+		eval "part$partn=$part0" 
+		eval "type$partn=$(cat config/${sf}_type.txt)"
+		echo -e "   [$partn]- $part0 <$(cat config/${sf}_type.txt)>\n"
+	fi
+	done
+fi
+
+if ls -d config/*.img >/dev/null 2>&1;then
+	for packs in $(ls config/*.img)
+	do
+	sf=$(basename $packs | sed 's/.img//g')
+	if [ -f "$packs" ] ; then
+		part0=$(echo "$sf" )
+		partn=$((partn+1))
+		echo -e "   [$partn]- $part0 <bootimg>\n"
+		eval "part$partn=$part0" 
+		eval "type$partn=boot"
+	fi
+	done
+fi
+
+echo -e ""
+echo -e "\033[33m  [66] 打包Super  [77] 打包dtb  [88] 打包dtbo  [99] 菜单\033[0m"
+echo -e "  --------------------------------------"
+read -p "  请输入对应序号：" filed
+
+if [[ "$filed" = "66" ]]; then
+	packsuper
+elif [[ "$filed" = "77" ]]; then
+	echo "维护中..."
+elif [[ "$filed" = "88" ]]; then
+	echo "维护中..."
+elif [[ "$filed" = "99" ]]; then
+	menu
+elif [[ $filed =~ ^-?[1-9][0-9]*$ ]]; then
+	if [ $filed -gt $filen ];then
+		ywarn "Input error!"
+		sleep $sleeptime && menu
+	else
+		echo "维护中"
+	fi
+else
+	ywarn "Input error!" && menu
+	sleep $sleeptime
+fi
+}
+
+
 function unpack(){
 if [[ ! -d "$PROJECT_DIR/config" ]]; then
     mkdir $PROJECT_DIR/config
@@ -516,53 +576,56 @@ if [[ -d "$sf" ]]; then
 fi
 if [ "$info" = "sparse" ];then
 	yecho "当前sparseimg转换为rimg中..."
-	$ebinner/simg2img $infile $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+	$ebinner/simg2img $infile $tempdir/$sf.img >> $tiklog
 	yecho "解压rimg中..."
 	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 elif [ "$info" = "br" ];then
+	yecho "解包$sf中..."
 	${su} brotli -d $infile -o $tempdir/$sf.new.dat > /dev/null
-	python3 $binner/sdat2img.py $sf.transfer.list $tempdir/$sf.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+	python3 $binner/sdat2img.py $sf.transfer.list $tempdir/$sf.new.dat $tempdir/$sf.img >/dev/null 2>&1
 	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 elif [ "$info" = "dat" ];then
-	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+	yecho "解包$sf中..."
+	python3 $binner/sdat2img.py $sf.transfer.list $sf.new.dat $tempdir/$sf.img >/dev/null 2>&1
 	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 elif [ "$info" = "img" ];then
+	yecho "解包$sf中..."
 	getinfo $infile && imgextra
 elif [ "$info" = "ofp" ];then
 	read -p " ROM机型处理器为？[1]高通 [2]MTK	" ofpm
 	if [ "$ofpm" = "1" ]; then
-		python3 $binner/oppo_decrypt/ofp_qc_decrypt.py $infile $PROJECT_DIR/$sf >> $PROJECT_DIR/config/$sf.info
+		python3 $binner/oppo_decrypt/ofp_qc_decrypt.py $infile $PROJECT_DIR/$sf >> $tiklog
 	elif [ "$ofpm" = "2" ];then
-		python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $infile $PROJECT_DIR/$sf >> $PROJECT_DIR/config/$sf.info
+		python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $infile $PROJECT_DIR/$sf >> $tiklog
 	fi
 elif [ "$info" = "ozip" ];then
-	python3 $binner/oppo_decrypt/ozipdecrypt.py $infile >> $PROJECT_DIR/config/$sf.info
+	python3 $binner/oppo_decrypt/ozipdecrypt.py $infile >> $tiklog
 elif [ "$info" = "ops" ];then
-	python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $infile $PROJECT_DIR/$sf >> $PROJECT_DIR/config/$sf.info
+	python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $infile $PROJECT_DIR/$sf >> $tiklog
 elif [ "$info" = "bin" ];then
 	yecho "$file所含分区列表："
 	$ebinner/payload-dumper-go -l $infile
 	read -p "请输入需要解压的分区名(空格隔开)/all[全部]	" extp </dev/tty
 	if [ "$extp" = "all" ];then 
-		$ebinner/payload-dumper-go $infile -o $PROJECT_DIR/payload >> $PROJECT_DIR/config/$sf.info
+		$ebinner/payload-dumper-go $infile -o $PROJECT_DIR/payload >> $tiklog
 	else
 		if [[ ! -d "payload" ]]; then
 			mkdir $PROJECT_DIR/payload
 		fi
 		for d in $extp
 		do
-			$ebinner/payload-dumper-go -p $d $infile -o $PROJECT_DIR/payload${d} >> $PROJECT_DIR/config/$sf.info
+			$ebinner/payload-dumper-go -p $d $infile -o $PROJECT_DIR/payload${d} >> $tiklog
 			mv $PROJECT_DIR/payload${d} $PROJECT_DIR/payload && rm -fr payload${d}
 		done
 	fi
 elif [ "$info" = "win000" ];then
-	${su} $ebinner/simg2img *${sf}.win* $PROJECT_DIR/${sf}.win >> $PROJECT_DIR/config/$sf.info
-	${su} python3 $binner/imgextractor.py $PROJECT_DIR/${sf}.win $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
+	${su} $ebinner/simg2img *${sf}.win* $PROJECT_DIR/${sf}.win >> $tiklog
+	${su} python3 $binner/imgextractor.py $PROJECT_DIR/${sf}.win $PROJECT_DIR >> $tiklog
 elif [ "$info" = "win" ];then
-	${su} python3 $binner/imgextractor.py $infile $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
+	${su} python3 $binner/imgextractor.py $infile $PROJECT_DIR >> $tiklog
 elif [ "$info" = "dat.1" ];then
 	${su} cat ./${sf}.new.dat.{1..999} >> $tempdir/${sf}.new.dat
-	python3 $binner/sdat2img.py $sf.transfer.list $tempdir/${sf}.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+	python3 $binner/sdat2img.py $sf.transfer.list $tempdir/${sf}.new.dat $tempdir/$sf.img >/dev/null 2>&1
 	infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 else
 	ywarn "未知格式！"
@@ -574,14 +637,89 @@ cleantemp
 unpackChoo
 }
 
+function miuiupdate()
+{
+echo 
+echo "[1]国内版 [2]印尼版 [3]俄版 [4]国际版 [5]欧版 [6]土耳其版  [7]台湾版 [8]日本版 [9]新加坡版"
+read -p "请选择地区代号：" op_menu
+case $op_menu in
+        1)
+        region=CN
+        ;;
+		2)
+        region=ID
+        ;;
+		3)
+        region=RU
+        ;;
+		4)
+        region=Global
+        ;;
+		5)
+        region=EEA
+        ;;
+		6)
+		region=TR
+		;;
+		7)
+        region=TW
+        ;;
+		8)
+        region=GP
+        ;;
+		9)
+        region=SG
+        ;;
+        *)
+        region=CN
+		ywarn "默认选择国内版！"
+		sleep $sleeptime
+esac
+echo 
+echo "[1]内测版 [2]稳定版"
+read -p "请选择类型：" typr
+	case $typr in
+        1)
+        type=beta
+        ;;
+		2)
+        type=stable
+        ;;
+        *)
+        type=beta
+		ywarn "默认选择内测！"
+		sleep $sleeptime
+	esac
+read -p "请输入机型代号：" mod
+link="" && link=$(python3 $binner/get_miui.py $mod $region $type recovery)
+if echo $link | grep "http" > /dev/null 2>&1 ; then
+	echo $link
+	read -p "是否开始下载？[1/0]：" ver
+	case "$ver" in
+		1)
+		zip=$(basename $link)
+		yecho "开始下载${zip}..."
+		sleep $sleeptime
+		aria2c -s 9 -x 2 $link -d $Sourcedir
+		ysuc "下载完成！"
+		;;
+		*)
+		echo  
+	esac
+fi
+promenu
+}
+
 function imgextra(){
 if [ "$info" = "ext" ]; then
-	${su} python3 $binner/imgextractor.py $infile $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
+	${su} python3 $binner/imgextractor.py $infile $PROJECT_DIR >> $tiklog
+	echo "ext4" >>$PROJECT_DIR/config/${sf}_type.txt
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	fi
 elif [ "$info" = "erofs" ];then
-	$ebinner/erofsUnpackRust $infile $PROJECT_DIR >> $PROJECT_DIR/config/$sf.info
+	$ebinner/erofsUnpackRust $infile $PROJECT_DIR >> $tiklog
+	echo "erofs" >>$PROJECT_DIR/config/${sf}_type.txt
 	if [ ! $? = "0" ];then
 		ywarn "解压失败"
 	fi
@@ -676,7 +814,7 @@ if ls *.new.dat.br >/dev/null 2>&1;then
 		sf=$(basename $infile | rev |cut -d'.' -f1 --complement | rev | sed 's/.new.dat//g')
 		yecho "解包$sf..."
 		${su} brotli -d $PROJECT_DIR/$infile -o $tempdir/$sf.new.dat > /dev/null
-		python3 $binner/sdat2img.py $sf.transfer.list $tempdir/$sf.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+		python3 $binner/sdat2img.py $sf.transfer.list $tempdir/$sf.new.dat $tempdir/$sf.img >/dev/null 2>&1
 		infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 		rm -rf ./${sf}.new.dat.br && rm -rf ./${sf}.patch.dat && rm -rf ./${sf}.transfer.list > /dev/null 2>&1
 	done
@@ -697,7 +835,7 @@ if ls *.dat >/dev/null 2>&1;then
 	ls *.new.dat | while read infile; do
 		sf=$(basename $infile | rev |cut -d'.' -f1 --complement | rev | sed 's/.new.dat//g' | sed 's/.new//g')
 		yecho "解包$sf..."
-		${su} python3 $binner/sdat2img.py ${sf}.transfer.list ${sf}.new.dat $tempdir/$sf.img >> $PROJECT_DIR/config/$sf.info
+		${su} python3 $binner/sdat2img.py ${sf}.transfer.list ${sf}.new.dat $tempdir/$sf.img >/dev/null 2>&1
 		infile=$tempdir/${sf}.img && getinfo $infile && imgextra
 		rm -rf $PROJECT_DIR/${sf}.new.dat && rm -rf $PROJECT_DIR/${sf}.patch.dat && rm -rf $PROJECT_DIR/${sf}.transfer.list > /dev/null 2>&1
 	done
