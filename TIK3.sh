@@ -35,6 +35,7 @@ fi
 # 配置环境
 function checkpath(){
 clear && cd $LOCALDIR
+packages="python3 sed python3-pip brotli resize2fs curl default-jre bc android-sdk-libsparse-utils aria2 openjdk-11-jre p7zip-full"
 if [[ ! -f "$binner/depment" ]]; then
 	PIP_MIRROR=https://pypi.tuna.tsinghua.edu.cn/simple/
 	echo -e "\033[31m $(cat $binner/banners/1) \033[0m"
@@ -58,7 +59,6 @@ if [[ ! -f "$binner/depment" ]]; then
     yecho "正在更新软件列表..."
     ${su} apt-get update  -y && ${su} apt-get upgrade -y 
     yecho "正在安装必备软件包..."
-    packages="python3 sed python3-pip brotli resize2fs curl default-jre bc android-sdk-libsparse-utils aria2 openjdk-11-jre p7zip-full"
     for i in $packages; do
         yecho "安装$i..."
         ${su} apt-get install $i -y
@@ -115,7 +115,8 @@ elif [ "$op_pro" == "88" ]; then
 	echo ""
 	echo "维护中..."
 	echo ""
-	# tiklab
+	sleep $sleeptime
+	miuiupdate
 elif [ "$op_pro" == "00" ]; then
 	read -p "  请输入你要删除的项目序号：" op_pro
     del=1 && Project
@@ -131,8 +132,8 @@ elif [[ $op_pro =~ ^-?[1-9][0-9]*$ ]]; then
 else
 	ywarn "  Input error!"
 	sleep $sleeptime
-	promenu
 fi
+	promenu
 }
 
 # 新建项目
@@ -193,51 +194,60 @@ case $op_menu in
         packChoo
         ;;
 		4)
-        # subbed
-		echo ""
-		echo "维护中..."
-		echo ""
+        subbed
         ;;
 		5)
 		# packzip
 		echo ""
 		echo "维护中..."
 		echo ""
+		sleep $sleeptime
 		;;
         *)
         ywarn "   Input error!"
 		sleep $sleeptime
-        menu
 esac
+menu
 }
 
 function Project(){
-    if ls TI_* >/dev/null 2>&1;then
-		if [ $op_pro -gt $pro ];then
-			ywarn "  Input error!"
-			sleep $sleeptime
-			promenu
-		else
-            if [[ "$del" == "1" ]]; then
-                eval "delproject=\$pro$op_pro"
-                read -p "  确认删除？[1/0]" delr
-                if [ "$delr" == "1" ];then
-                    rm -fr $delproject
-                    ysuc "  删除成功！"
-                    sleep $sleeptime
-                fi
-                promenu
-            elif [[ "$chooPro" == "1" ]]; then
-                eval "project=\$pro$op_pro"
-                cd $project
-                menu
-            fi
-		fi
-	else
-		ywarn  "  Input error!"
-		sleep $sleeptime
-		promenu
+eval "project=\$pro$op_pro"
+if [[ $project == "" ]];then
+	ywarn "  Input error!"
+	sleep $sleeptime
+	promenu
+else
+    if [[ "$del" == "1" ]]; then
+        read -p "  确认删除？[1/0]" delr
+        if [ "$delr" == "1" ];then
+		eval "pro$pro="
+		rm -fr $project && ysuc "  删除成功！" && sleep $sleeptime
+        fi
+        promenu
+    elif [[ "$chooPro" == "1" ]]; then
+        cd $project
+        menu
 	fi
+fi
+}
+
+function subche(){
+eval "sub=\$mysubs$op_pro"
+if [[ $sub == "" ]];then
+	ywarn "  Input error!"
+	sleep $sleeptime
+else
+    if [[ "$runsub" == "0" ]]; then
+        read -p "确认删除？[1/0]" delr
+        if [ "$delr" == "1" ];then
+		eval "mysubs$subn="
+		rm -fr $sub && ysuc "  删除成功！" && sleep $sleeptime
+        fi
+    else
+		cd $PROJECT_DIR && bash $binner/subs/$sub/run.sh $PROJECT_DIR $SYSTEM_DIR
+	fi
+fi
+subbed
 }
 
 # 解压制作
@@ -252,7 +262,7 @@ if ls -d $Sourcedir/*.zip >/dev/null 2>&1;then
 	do 
 	if [ -f "$zip0" ]; then
 		getsize $zip0 >/dev/null 2>&1
-		if [ $filesize -gt $litelim ];then
+		if [ $filesize -gt $plugromlit ];then
 		zip=$(echo "$zip0" )
 		zipn=$((zipn+1))
 		echo -e "   [$zipn]- $zip\n"
@@ -267,33 +277,108 @@ fi
 echo -e "--------------------------------------------------\n"
 echo -e ""
 read -p "请输入对应序列号：" zipd
-if [[ $zipd =~ ^-?[1-9][0-9]*$ ]]; then
-	if [ $zipd -gt $zipn ];then
-		ywarn "Input error!" && sleep $sleeptime && promenu
-	else
-		eval "zip=\$zip$zipd"
-		zs=$(echo "$zip" | sed 's/.zip//g')
-		read -p "请输入项目名称(可留空)：" projec
-		if test -z "$projec";then
-			project=TI_$zs
-		else  
-			project=TI_$projec
-		fi
-		if [[ -d "$project" ]]; then
-			project="$project"-`date "+%m%d%H%M%S"`
-			ywarn "项目已存在！自动命名为：$project"
-		fi
-		PROJECT_DIR=$LOCALDIR/$project && mkdir $PROJECT_DIR
-		echo 创建项目:$project 成功！
-		yecho "解压刷机包中..."
-		7z x "$Sourcedir/$zip" -o"$LOCALDIR/$project/" > /dev/null
-		sleep $sleeptime
-		autounpack
-		sleep $sleeptime
-	fi
-else
+eval "tzip=\$zip$zipd"
+if [[ "$tzip" == "" ]];then
 	ywarn "Input error!" && sleep $sleeptime && promenu
+else
+	zs=$(echo "$tzip" | sed 's/.zip//g')
+	read -p "请输入项目名称(可留空)：" projec
+	if test -z "$projec";then
+		project=TI_$zs
+	else  
+		project=TI_$projec
+	fi
+	if [[ -d "$project" ]]; then
+		project="$project"-`date "+%m%d%H%M%S"`
+		ywarn "项目已存在！自动命名为：$project"
+	fi
+	PROJECT_DIR=$LOCALDIR/$project && mkdir $PROJECT_DIR
+	echo 创建项目:$project 成功！
+	yecho "解压刷机包中..."
+	7z x "$Sourcedir/$tzip" -o"$LOCALDIR/$project/" > /dev/null
+	sleep $sleeptime
+	autounpack
+	sleep $sleeptime
 fi
+}
+
+function subbed()
+{
+if [[ ! -d $binner/subs ]]; then
+	mkdir $binner/subs
+fi
+cd $binner/subs && clear
+echo -e " >\033[31m插件列表 \033[0m\n"
+subn=0 && mysubs=()
+for sub in $(ls)
+do 
+	if [ -d "./$sub" ];then
+	subn=$((subn+1))
+	echo -e "   [$subn]- $sub\n"
+	eval "mysubs$subn=$sub" 
+	fi
+done
+echo -e "----------------------------------------------\n"
+echo -e "\033[33m> [44]-安装  [55]-删除  [66]-项目菜单\033[0m"
+echo -e ""
+read -p "请输入序号：" op_pro
+if [ "$op_pro" == "44" ]; then
+	subber
+elif [ "$op_pro" == "55" ]; then
+	runsub=0
+	read -p "请输入你要删除的插件序号：" op_pro
+	subche
+elif [ "$op_pro" == "66" ]; then
+	menu
+elif [[ $op_pro =~ ^-?[0-9][0-9]*$ ]]; then
+	runsub=1 && subche
+else
+	ywarn "  Input error!" && sleep $sleeptime && subbed
+fi
+}
+
+function subber()
+{
+clear
+cd $LOCALDIR
+echo -e " \033[31m >插件列表 \033[0m\n"
+zipn=0
+ywarn "   请将插件置于$Sourcedir下！"
+if ls -d $Sourcedir/*.zip >/dev/null 2>&1;then
+	cd $Sourcedir
+	for zip0 in $(ls *.zip)
+	do 
+		getsize $zip0 >/dev/null 2>&1
+		if [ $filesize -lt $plugromlit ];then
+		zip=$(echo "$zip0" )
+		zipn=$((zipn+1))
+		echo -e "   [$zipn]- $zip\n"
+		eval "zip$zipn=$zip" 
+		fi
+	done
+cd $LOCALDIR
+else
+ywarn "	没有插件文件！"
+fi
+echo -e "-------------------------------------------------------\n"
+echo -e ""
+read -p "请输入对应序列号：" zipd
+eval "tzip=\$zip$zipd"
+if [[ "$tzip" == "" ]];then
+	ywarn "Input error!" && sleep $sleeptime
+else
+	zs=$(echo "$tzip" | rev | cut -d'.' -f1 --complement | rev)
+	if [[ -d $binner/subs/$zs ]]; then
+		${su} rm -fr $binner/subs/$zs
+	fi
+	mkdir $binner/subs/$zs
+	yecho "安装插件[$zs]中..."
+	7z x "$Sourcedir/$tzip" -o"$binner/subs/$zs" > /dev/null
+	${su} chmod -R 777 $binner/subs/$zs
+	ysuc "安装完成"
+	sleep $sleeptime
+fi
+subbed
 }
 
 function unpackChoo(){
@@ -351,7 +436,7 @@ echo -e "\033[33m [Img]文件\033[0m\n"
 	if [ -f "$img0" ] ; then
 		info=$($ebinner/gettype -i $img0)
 		filen=$((filen+1))
-		if [[ $(file $img0 | cut -d":" -f2 | grep "ext") ]]; then
+		if [ "$info" == "ext" ]; then
 			echo -e "   [$filen]- $img0 <EXT4>\n"
 		elif [ "$info" == "erofs" ]; then
 			echo -e "   [$filen]- $img0 <EROFS>\n"
@@ -482,12 +567,29 @@ echo -e "\033[33m [Dtb]文件\033[0m\n"
 fi
 
 echo -e ""
-echo -e "\033[33m  [77] 菜单  [88] 占位  [99] 占位\033[0m"
+echo -e "\033[33m  [77] 菜单  [88] 循环解包  [99] 占位\033[0m"
 echo -e "  --------------------------------------"
 read -p "  请输入对应序号：" filed
 
 if [[ "$filed" = "0" ]]; then
 	echo "维护中..."
+elif [[ "$filed" = "88" ]]; then
+	echo  
+	read -p "  是否解包所有文件？ [1/0]	" upacall
+	for ((filed = 1; filed <= $filen; filed++))
+	do
+		eval "infile=\$file$filed"
+		infile=$PROJECT_DIR/$infile
+		sfname=`basename $infile`
+		eval "info=\$info$filed"
+		if [ "$upacall" != "1" ];then
+			read -p "  是否解包$sfname?[1/0]	" imgcheck </dev/tty
+		fi
+		if [[ "$upacall" == "1" ]] || [ "$imgcheck" != "0" ];then
+			unpack $infile
+		fi
+	done
+	unpackChoo
 elif [[ "$filed" = "77" ]]; then
 	menu
 elif [[ $filed =~ ^-?[1-9][0-9]*$ ]]; then
@@ -500,6 +602,7 @@ elif [[ $filed =~ ^-?[1-9][0-9]*$ ]]; then
 		eval "info=\$info$filed"
 		unpack $infile
 	fi
+	unpackChoo
 else
 	ywarn "Input error!" && menu
 	sleep $sleeptime
@@ -542,12 +645,50 @@ if ls -d config/*.img >/dev/null 2>&1;then
 fi
 
 echo -e ""
-echo -e "\033[33m  [66] 打包Super  [77] 打包dtb  [88] 打包dtbo  [99] 菜单\033[0m"
+echo -e "\033[33m  [55] 循环打包  [66] 打包Super  [77] 打包dtb  [88] 打包dtbo  [99] 菜单\033[0m"
 echo -e "  --------------------------------------"
 read -p "  请输入对应序号：" filed
 
 if [[ "$filed" = "0" ]]; then
 	echo "维护中..."
+elif [[ "$filed" = "55" ]]; then
+	echo  
+	read -p "  是否打包所有镜像？ [1/0]	" pacall
+	read -p "  输出所有文件格式[1]br [2]dat [3]img:" op_menu
+	case $op_menu in
+		1)
+		isbr=1 && isdat=1
+		;;
+		2)
+		isbr=0 && isdat=1
+		;;		
+		*)
+		isbr=0 && isdat=0
+	esac
+	
+	if [[ "$diyimgtype" == "1" ]];then
+		echo "您要手动打包所有分区格式为：[1]ext4 [2]erofs" syscheck
+		case $syscheck in
+			2)
+			imgtype="erofs"
+			;;
+			*)
+			imgtype="ext4"
+		esac
+	fi
+	
+	for ((filed = 1; filed <= $partn; filed++))
+	do
+		eval "partname=\$part$filed"
+		eval "imgtype=\$type$filed"
+		if [ "$pacall" != "1" ];then
+			read -p "  是否打包$partname?[1/0]	" imgcheck </dev/tty
+		fi
+		if [[ "$pacall" == "1" ]] || [ "$imgcheck" != "0" ];then
+			yecho "打包$partname..."
+			inpacker $partname >> $tiklog
+		fi
+	done
 elif [[ "$filed" = "66" ]]; then
 	packsuper
 elif [[ "$filed" = "77" ]]; then
@@ -621,7 +762,11 @@ else
 fi
 img_size=`echo $img_size0 | sed 's/\..*//g'`
 size=`echo "$img_size0 / $BLOCKSIZE" |bc`
+
+if [[ "$auto_fsconfig" == "1" ]] ;then
 python3 $binner/fspatch.py $in_files $fs_config
+fi
+
 echo $img_size >$PROJECT_DIR/config/${name}_size.txt
 if [[ -f "dynamic_partitions_op_list" ]]; then
 sed -i "s/resize ${name}\s.*/resize ${name} $img_size/" $PROJECT_DIR/dynamic_partitions_op_list
@@ -701,8 +846,8 @@ elif [ "$info" = "ozip" ];then
 	python3 $binner/oppo_decrypt/ozipdecrypt.py $infile >> $tiklog
 elif [ "$info" = "ops" ];then
 	python3 $binner/oppo_decrypt/ofp_mtk_decrypt.py $infile $PROJECT_DIR/$sf >> $tiklog
-elif [ "$info" = "bin" ];then
-	yecho "$file所含分区列表："
+elif [ "$info" = "payload" ];then
+	yecho "$sf所含分区列表："
 	$ebinner/payload-dumper-go -l $infile
 	read -p "请输入需要解压的分区名(空格隔开)/all[全部]	" extp </dev/tty
 	if [ "$extp" = "all" ];then 
@@ -713,8 +858,8 @@ elif [ "$info" = "bin" ];then
 		fi
 		for d in $extp
 		do
-			$ebinner/payload-dumper-go -p $d $infile -o $PROJECT_DIR/payload${d} >> $tiklog
-			mv $PROJECT_DIR/payload${d} $PROJECT_DIR/payload && rm -fr payload${d}
+			$ebinner/payload-dumper-go -p $d $infile -o $PROJECT_DIR/payload >> $tiklog
+			#mv $PROJECT_DIR/payload${d}/* $PROJECT_DIR/payload && rm -fr payload${d}
 		done
 	fi
 elif [ "$info" = "win000" ];then
@@ -733,7 +878,6 @@ if [[ $userid = "root" ]]; then
 	${su} chmod 777 -R $sf > /dev/null 2>&1
 fi
 cleantemp
-unpackChoo
 }
 
 function miuiupdate()
@@ -899,7 +1043,7 @@ if [ -f "./payload.bin" ]; then
 		if [[ $info = "Unknow" ]] || [[ $info = "dtbo" ]] || [[ $sf = "dsp" ]] || [[ $info = "vbmeta" ]];then
 			ywarn "不支持自动解包！"
 		else
-			mv $infile $PROJECT_DIR && $infile=$PROJECT_DIR/$sf.img
+			mv $infile $PROJECT_DIR && infile=$PROJECT_DIR/$sf.img
 			imgextra
 			ysuc "成功." && rm -f $sf.img
 		fi
@@ -982,10 +1126,10 @@ if [ "$ifsparse" = "1" ];then
 fi
 
 if [ "$supertype" = "VAB" ];then
-	superpa+=" --virtual-ab "
+	superpa+="--virtual-ab "
 fi
-
-superpa+=" --metadata-slots $slotnumber "
+superpa+="-block-size=$BLOCKSIZE "
+superpa+="--metadata-slots $slotnumber "
 superpa+="--device super:$supersize "
 for imag in $(ls $Imgdir/*.img);do
 	image=$(echo "$imag" | rev | cut -d"/" -f1 | rev  | sed 's/_a.img//g' | sed 's/_b.img//g'| sed 's/.img//g')

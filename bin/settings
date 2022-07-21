@@ -5,208 +5,176 @@ function settings()
 clear
 cd $LOCALDIR
 echo -e "\033[33m  > 设置 \033[0m"
-echo  
-echo "   1>修改等待时间 "
-echo  
-echo "   2>修改brotli压缩等级"
-echo  
-echo "   3>安卓-修改内置存储rom目录"
-echo  
-echo "   4>修复工具内部分依赖"
-echo  
-echo "   5>修改ROM制作者"
-echo  
-echo "   6>修改首页banner"
-echo  
-echo "   7>修改EXT4打包方案"
-echo  
-echo "   8>返回主页"
+echo -e "   1>警告/提示 等待时间\n"
+echo -e "   2>[Droid]存储ROM目录\n"
+echo -e "   3>[修复]工具部分依赖\n"
+echo -e "   4>[打包]相关细则设置\n"
+echo -e "   5>[动态分区]相关设置\n"
+echo -e "   6>自定义 ROM作者信息\n"
+echo -e "   7>自定义 首页Banner\n"
+echo -e "   8>修改Plug/ROM限Size\n"
+echo -e "   9>返回主页"
 echo -e "   --------------------------"
 read -p "   请输入编号: " op_pro
-if [ "$op_pro" == "1" ]; then
-	settings1
-elif [ "$op_pro" == "2" ]; then
-	settings2
-elif [ "$op_pro" == "3" ]; then
-	settings3
-elif [ "$op_pro" == "4" ]; then
-	update1
-elif [ "$op_pro" == "5" ]; then
-	settings4
-elif [ "$op_pro" == "6" ]; then
-	settings5
-elif [ "$op_pro" == "7" ]; then
-	settings6
-elif [ "$op_pro" == "8" ]; then
+if [[ $op_pro =~ ^-?[1-8]*$ ]]; then
+	settings${op_pro}
+elif [ "$op_pro" == "9" ]; then
 	promenu
 else
-	echo  输入有误！
+	ywarn  "Input error!"
 	sleep $sleeptime
-	settings
 fi
-}
-
-function settings1()
-{
-echo 调整部分命令输出后的等待时间，当前为：$sleeptime秒
-read -p "	请输入（非负数）: " sleeptime
-if [[ ! "$sleeptime" == "" ]]; then
-sed -i 's/^sleeptime=.*/sleeptime='$sleeptime'/'  $binner/settings
-fi
-source $binner/settings
-settings
-}
-function settings2()
-{
-echo 调整brotli压缩等级（整数1-9，级别越高，压缩率越大，耗时越长），当前为：$brcom级
-read -p "	请输入（1-9）: " brcom
-if [[ ! "$brcom" == "" ]]; then
-sed -i 's/^brcom=.*/brcom='$brcom'/'  $binner/settings
-fi
-source $binner/settings
-settings
-}
-
-function settings3()
-{
-echo 修改安卓端在内置存储识别ROM的路径。当前为/sdcard/$mydir
-read -p "	请输入文件夹名称(英文): " mydir
-if [[ ! "$mydir" == "" ]]; then
-sed -i 's/^mydir=.*/mydir='$mydir'/'  $binner/settings
-fi
-source $binner/settings
-settings
-}
-
-function packset1()
-{
-echo "  Img是否打包为sparse(压缩体积)[1/0]"
-read -p "  请输入序号: " ifpsparse
-case $ifpsparse in
-    1)
-	sed -i 's/^pack_sparse=.*/pack_sparse='1'/'  $binner/settings
-    ;;
-	0)
-	sed -i 's/^pack_sparse=.*/pack_sparse='0'/'  $binner/settings
-    ;;
-    *)
-esac
-source $binner/settings
-settings
-}
-
-function packset2()
-{
-read -p "  选择erofs压缩方式[1]无 [2]lz4 [3]lz4hc: " erofslim
-case $erofslim in
-    1)
-	sed -i 's/^erofslim=.*/erofslim=''/'  $binner/settings
-    ;;
-    1)
-	sed -i 's/^erofslim=.*/erofslim='-zlz4'/'  $binner/settings
-    ;;
-	2)
-	sed -i 's/^erofslim=.*/erofslim='-zlz4hc'/'  $binner/settings
-    ;;
-    *)
-esac
-source $binner/settings
-settings
-}
-
-function packset3()
-{
-read -p "  打包EXT是否可读[1]RW [2]RO: " extrw
-case $extrw in
-    2)
-	sed -i 's/^extrw=.*/extrw=''/'  $binner/settings
-    ;;
-    *)
-	sed -i 's/^extrw=.*/extrw='-s'/'  $binner/settings
-esac
-source $binner/settings
-settings
-}
-
-function packset4()
-{
-echo "  分区打包扇区数：$BLOCKSIZE"
-read -p "  请输入: " BLOCKSIZE
-if [[ ! "$BLOCKSIZE" == "" ]]; then
-sed -i 's/^BLOCKSIZE=.*/BLOCKSIZE='$BLOCKSIZE'/'  $binner/settings
-fi
-source $binner/settings
-settings
-}
-
-function packset5()
-{
-read -p "  打包Img_UTC时间戳[1]live [2]自定义: " utcstamp
-case utcstamp in
-    2)
-	read -p "  请输入: " utcstamp
-	if [[ ! "$utcstamp" == "" ]]; then
-	sed -i 's/^utcstamp=.*/utcstamp='$utcstamp'/'  $binner/settings
-	fi
-    ;;
-    *)
-	sed -i 's/^utcstamp=.*/utcstamp=''/'  $binner/settings
-esac
-source $binner/settings
-settings
-}
-
-function packset6()
-{
-read -p "  打包Ext镜像大小[1]动态最小 [2]手动改: " sizediy
-case sizediy in
-    2)
-	sed -i 's/^diysize=.*/diysize='1'/'  $binner/settings
-    ;;
-    *)
-	sed -i 's/diysize=.*/diysize=''/'  $binner/settings
-esac
-source $binner/settings
-settings
-}
-
-function packset6()
-{
-read -p "  打包镜像格式[1]同解包格式 [2]可选择: " typediy
-case typediy in
-    2)
-	sed -i 's/^diyimgtype=.*/diyimgtype='1'/'  $binner/settings
-    ;;
-    *)
-	sed -i 's/diyimgtype=.*/diyimgtype=''/'  $binner/settings
-esac
 source $binner/settings
 settings
 }
 
 function settings4()
 {
+clear
+cd $LOCALDIR
+echo -e "\033[33m  > 打包设置 \033[0m"
+echo  
+echo -e "   1>Brotli 压缩等级\n"
+echo -e "   2>[EXT4] Size处理\n"
+echo -e "   3>[EXT4] 打包工具\n"
+echo -e "   4>[EXT4]打包RO/RW\n"
+echo -e "   5>[Erofs]压缩方式\n"
+echo -e "   6>[EXT4]UTC时间戳\n"
+echo -e "   7>[Img]创建sparse\n"
+echo -e "   8>[~4]Img文件系统\n"
+echo -e "   9> 补全fs_config\n"
+echo -e "   10>返回上一级菜单"
+echo -e "   --------------------------"
+read -p "   请输入编号: " op_pro
+if [[ $op_pro =~ ^[1-9]$ ]]; then
+	packset${op_pro}
+elif [ "$op_pro" == "10" ]; then
+	settings
+else
+	ywarn  "Input error!"
+	sleep $sleeptime
+fi
+source $binner/settings
+settings4
+}
+
+function settings5()
+{
+clear && cd $LOCALDIR
+echo -e "\033[33m  > 动态分区设置 \033[0m"
+echo -e "   1> dynamic_partitions簇名\n"
+echo -e "   2> [Metadata]元数据插槽数\n"
+echo -e "   3> [Metadata]最大保留Size\n"
+echo -e "   4> [分区] 默认扇区/块大小\n"
+echo -e "   5> [Super] 指定/block分区\n"
+echo -e "   6> [Super] 启用最佳的对齐\n"
+echo -e "   7> [Super] 调整对齐偏移量\n"
+echo -e "   8> [Super] 更改物理分区名\n"
+echo -e "   9> [Super] 更改逻辑分区表\n"
+echo -e "   10>[Super]强制烧写完整Img\n"
+echo -e "   11>[Super] 标记Slot分区名\n"
+echo -e "   12>[Payload]V.Boot_header\n"
+echo -e "   13>返回上一级菜单"
+echo -e "   --------------------------"
+read -p "   请输入编号: " op_pro
+if [[ $op_pro =~ ^-?[1-9][0-9]*$ ]] && [ $op_pro -le 12 ]; then
+	#dyset$op_pro
+	echo "  维护中..." && sleep $sleeptime
+elif [ "$op_pro" == "13" ]; then
+	settings
+else
+	ywarn  "Input error!"
+	sleep $sleeptime
+fi
+source $binner/settings
+settings5
+}
+
+function settings1()
+{
+echo "  调整部分命令输出后的等待时间，当前为：$sleeptime秒"
+read -p "  请输入（非负数）: " sleeptime
+if [[ ! "$sleeptime" == "" ]]; then
+sed -i 's/^sleeptime=.*/sleeptime='$sleeptime'/'  $binner/settings
+fi
+}
+function settings2()
+{
+echo "  修改安卓端在内置存储识别ROM的路径。当前为/sdcard/$mydir"
+read -p "  请输入文件夹名称(英文): " mydir
+if [[ ! "$mydir" == "" ]]; then
+sed -i 's/^mydir=.*/mydir='$mydir'/'  $binner/settings
+fi
+}
+
+function settings3()
+{
+for i in $packages
+do
+	packs=$(dpkg -s $i)
+	if echo $packs | grep -q "install ok installed" > /dev/null ;then
+		echo -e "\033[36m  $i已安装\033[0m"
+	else
+		echo -e "\033[31m  修复安装$i\033[0m"
+		${su} apt-get install $i -y
+	fi
+	sleep $sleeptime
+done
+}
+
+function settings6()
+{
 echo "  打包时ROM作者为：$Romer"
 read -p "  请输入（无特殊字符）: " Romer
 if [[ ! "$Romer" == "" ]]; then
 sed -i 's/^Romer=.*/Romer='$Romer'/'  $binner/settings
 fi
-source $binner/settings
-settings
 }
 
-function settings5()
+function settings7()
 {
 echo "  首页banner: [1]TIK3 [2]爷 [3]电摇嘲讽 [4]镰刀斧头 [5]镰刀斧头(大) [6]TIK2旧 "
 read -p "  请输入序号: " banner
-if [[ ! "$banner" == "" ]]; then
+if [[ $banner =~ ^-?[1-6]*$ ]] ; then
 sed -i 's/^banner=.*/banner='$banner'/'  $binner/settings
 fi
-source $binner/settings
-settings
 }
 
-function settings6()
+function settings8()
+{
+read -p "  设置区分ROM/Plug的Size界限[1]125829120 [2]自定义: " plugromlit
+if [[ "$plugromlit" == "2" ]]; then
+	read -p "  请输入: " plugromlit
+	if [[ ! "$plugromlit" == "" ]] ;then
+	sed -i 's/^plugromlit=.*/plugromlit='$plugromlit'/'  $binner/settings
+	fi
+else
+	sed -i 's/^plugromlit=.*/plugromlit='125829120'/'  $binner/settings
+fi
+}
+
+function packset1()
+{
+echo "  调整brotli压缩等级（整数1-9，级别越高，压缩率越大，耗时越长），当前为：$brcom级"
+read -p "  请输入（1-9）: " brcom
+if [[ $brcom =~ ^-?[1-9]$ ]] ; then
+sed -i 's/^brcom=.*/brcom='$brcom'/'  $binner/settings
+fi
+}
+
+function packset2()
+{
+read -p "  打包Ext镜像大小[1]动态最小 [2]手动改: " sizediy
+case $sizediy in
+    2)
+	sed -i 's/^diysize=.*/diysize='1'/'  $binner/settings
+    ;;
+    *)
+	sed -i 's/diysize=.*/diysize=''/'  $binner/settings
+esac
+}
+
+function packset3()
 {
 echo "  ext4打包方案: [1]make_ext4fs [2]mke2fs+e2fsdroid "
 read -p "  请输入序号: " pack_op
@@ -219,27 +187,114 @@ case $pack_op in
     ;;
     *)
 esac
-source $binner/settings
-settings
 }
 
-function update1()
+function packset4()
 {
-packages="python3 sed python3-pip resize2fs curl default-jre bc android-sdk-libsparse-utils aria2 openjdk-11-jre zip p7zip-full"
-for i in $packages
-do
-	packs=$(dpkg -s $i)
-	if echo $packs | grep -q "install ok installed" > /dev/null ;then
-		echo -e "\033[36m  $i已安装\033[0m"
-	else
-		echo -e "\033[31m  修复安装$i\033[0m"
-		${su} apt-get install $i -y
-	fi
-done
-sleep $sleeptime
-settings
+read -p "  打包EXT是否可读[1]RW [2]RO: " extrw
+case $extrw in
+    2)
+	sed -i 's/^extrw=.*/extrw=''/'  $binner/settings
+    ;;
+    *)
+	sed -i 's/^extrw=.*/extrw='-s'/'  $binner/settings
+esac
 }
 
+function packset5()
+{
+read -p "  选择erofs压缩方式[1]无 [2]lz4 [3]lz4hc: " erofslim
+case $erofslim in
+    2)
+	sed -i 's/^erofslim=.*/erofslim='-zlz4'/'  $binner/settings
+    ;;
+	3)
+	sed -i 's/^erofslim=.*/erofslim='-zlz4hc'/'  $binner/settings
+    ;;
+    *)
+	sed -i 's/^erofslim=.*/erofslim=''/'  $binner/settings
+esac
+}
+
+function packset6()
+{
+read -p "  设置打包UTC时间戳[1]live [2]自定义: " utcstamp
+if [[ "$utcstamp" == "2" ]]; then
+	read -p "  请输入: " utcstamp
+	if [[ $utcstamp =~ ^[1-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]$ ]] ;then
+	sed -i 's/^utcstamp=.*/utcstamp='$utcstamp'/'  $binner/settings
+	fi
+else
+	sed -i 's/^utcstamp=.*/utcstamp=''/'  $binner/settings
+fi
+}
+
+function packset7()
+{
+echo "  Img是否打包为sparse(压缩体积)[1/0]"
+read -p "  请输入序号: " ifpsparse
+case $ifpsparse in
+    1)
+	sed -i 's/^pack_sparse=.*/pack_sparse='1'/'  $binner/settings
+    ;;
+	0)
+	sed -i 's/^pack_sparse=.*/pack_sparse='0'/'  $binner/settings
+    ;;
+    *)
+esac
+}
+
+function packset8()
+{
+read -p "  打包镜像格式[1]同解包格式 [2]可选择: " typediy
+case $typediy in
+    2)
+	sed -i 's/^diyimgtype=.*/diyimgtype='1'/'  $binner/settings
+    ;;
+    *)
+	sed -i 's/diyimgtype=.*/diyimgtype=''/'  $binner/settings
+esac
+}
+
+function packset9()
+{
+echo "  是否自动补全fs_config[谨慎!]: [1]是 [2]否 "
+read -p "  请输入序号: " pack_op
+case $pack_op in
+    2)
+	sed -i 's/^auto_fsconfig=.*/auto_fsconfig='0'/'  $binner/settings
+    ;;
+    *)
+	sed -i 's/^auto_fsconfig=.*/auto_fsconfig='1'/'  $binner/settings
+esac
+}
+
+function dyset1()
+{
+echo "  分区打包扇区/块大小：$BLOCKSIZE"
+read -p "  请输入: " BLOCKSIZE
+if [[ ! "$BLOCKSIZE" == "" ]]; then
+sed -i 's/^BLOCKSIZE=.*/BLOCKSIZE='$BLOCKSIZE'/'  $binner/settings
+fi
+}
+
+function dyset2()
+{
+echo "  分区打包扇区/块大小：$BLOCKSIZE"
+read -p "  请输入: " BLOCKSIZE
+if [[ ! "$BLOCKSIZE" == "" ]]; then
+sed -i 's/^BLOCKSIZE=.*/BLOCKSIZE='$BLOCKSIZE'/'  $binner/settings
+fi
+}
+
+function dyset5()
+{
+echo "  分区打包扇区/块大小：$BLOCKSIZE"
+read -p "  请输入: " BLOCKSIZE
+if [[ ! "$BLOCKSIZE" == "" ]]; then
+sed -i 's/^BLOCKSIZE=.*/BLOCKSIZE='$BLOCKSIZE'/'  $binner/settings
+fi
+}
 #Settings
 sleeptime=1
 brcom=5
@@ -249,9 +304,10 @@ Romer=yeliqin666
 banner=1
 pack_e2=1
 slotnumber=2
-litelim=118671415
+plugromlit=125829120
 pack_sparse=0
 BLOCKSIZE=4096
+auto_fsconfig=1
 erofslim=
 extrw=
 utcstamp=
