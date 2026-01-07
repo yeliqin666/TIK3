@@ -1,6 +1,7 @@
 
 ####  **介绍** 
 
+本项目已迁移到 [TIK](https://github.com/ColdWindScholar/TIK) ，使用Python重写，由[@ColdWindScholar](https://github.com/ColdWindScholar)维护！
 
 1.  【 **TI Kitchen 3.0** 】 永久开源的ROM工具箱，支持安卓全版本
 
@@ -125,5 +126,6 @@ Credit:
 2.  此工具不含任何【破坏系统、获取数据】等其他不法代码 ！！！
 
 3.  **如果由于用户利用root权限对工具中的工程目录进行操作导致的数据丢失、损毁，本人不承担任何责任 ！！！** 
+
 
 
